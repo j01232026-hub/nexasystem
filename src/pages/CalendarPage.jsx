@@ -15,6 +15,79 @@ const CLOSE_HOUR = 21;
 const SLOT_HEIGHT = 60; // 1 hour = 60px height
 const MINUTE_HEIGHT = SLOT_HEIGHT / 60;
 
+// Helper to calculate layout for overlapping events
+const calculateLayout = (events) => {
+  if (!events || events.length === 0) return [];
+  
+  // 1. Sort by start time
+  const sorted = [...events].sort((a, b) => {
+    const startA = new Date(a.start_time).getTime();
+    const startB = new Date(b.start_time).getTime();
+    if (startA !== startB) return startA - startB;
+    return new Date(b.end_time).getTime() - new Date(a.end_time).getTime();
+  });
+
+  // 2. Group overlapping events
+  const groups = [];
+  let currentGroup = [];
+  let groupEndTime = 0;
+
+  sorted.forEach(event => {
+    const start = new Date(event.start_time).getTime();
+    const end = new Date(event.end_time).getTime();
+
+    if (currentGroup.length === 0) {
+      currentGroup.push(event);
+      groupEndTime = end;
+    } else {
+      if (start < groupEndTime) {
+        // Overlaps with the group
+        currentGroup.push(event);
+        groupEndTime = Math.max(groupEndTime, end);
+      } else {
+        // New group
+        groups.push(currentGroup);
+        currentGroup = [event];
+        groupEndTime = end;
+      }
+    }
+  });
+  if (currentGroup.length > 0) groups.push(currentGroup);
+
+  // 3. Process each group
+  const result = [];
+  groups.forEach(group => {
+    const columns = []; // [endTime1, endTime2, ...]
+    
+    const groupWithLayout = group.map(event => {
+       const start = new Date(event.start_time).getTime();
+       const end = new Date(event.end_time).getTime();
+       
+       let colIndex = 0;
+       while (colIndex < columns.length) {
+         if (start >= columns[colIndex]) break;
+         colIndex++;
+       }
+       columns[colIndex] = end;
+       return { ...event, colIndex };
+    });
+
+    const totalColumns = columns.length;
+    
+    groupWithLayout.forEach(event => {
+       result.push({
+         ...event,
+         layoutStyle: {
+           width: `${100 / totalColumns}%`,
+           left: `${(event.colIndex / totalColumns) * 100}%`
+         }
+       });
+    });
+  });
+
+  return result;
+};
+
 const CalendarPage = () => {
   const { user } = useOutletContext() || {};
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -356,15 +429,21 @@ const CalendarPage = () => {
 
                         {/* Appointments Container */}
                         <div className="relative z-10">
-                           {memberAppts.map(appt => {
+                           {calculateLayout(memberAppts).map(appt => {
                              const style = getAppointmentStyle(appt);
                              const isBlocked = appt.status === 'blocked';
+                             const { width, left } = appt.layoutStyle || { width: '100%', left: '0%' };
                              
                              return (
                                <div 
                                  key={appt.id}
-                                 style={{ top: style.top, height: style.height }}
-                                 className={`${style.className} !left-1 !right-1 shadow-sm z-10`}
+                                 style={{ 
+                                   top: style.top, 
+                                   height: style.height,
+                                   width: `calc(${width} - 4px)`,
+                                   left: `calc(${left} + 2px)`
+                                 }}
+                                 className={`${style.className} shadow-sm z-10`}
                                  onClick={(e) => {
                                    e.stopPropagation();
                                    setSelectedAppointmentId(appt.id);
@@ -422,16 +501,23 @@ const CalendarPage = () => {
                    ))}
 
                    {/* Appointments */}
-                   {appointments
-                     .filter(appt => (!selectedStaffId || appt.staff_id === selectedStaffId) && isSameDay(parseISO(appt.start_time), day))
+                   {calculateLayout(appointments
+                     .filter(appt => (!selectedStaffId || appt.staff_id === selectedStaffId) && isSameDay(parseISO(appt.start_time), day)))
                      .map(appt => {
                        const style = getAppointmentStyle(appt);
                        const isBlocked = appt.status === 'blocked';
+                       const { width, left } = appt.layoutStyle || { width: '100%', left: '0%' };
+                       
                        return (
                          <div 
                           key={appt.id}
-                          style={{ top: style.top, height: style.height, left: '1px', right: '1px' }}
-                          className={`${style.className} !w-auto shadow-sm !px-1`}
+                          style={{ 
+                            top: style.top, 
+                            height: style.height, 
+                            width: `calc(${width} - 2px)`,
+                            left: `calc(${left} + 1px)`
+                          }}
+                          className={`${style.className} shadow-sm !px-1`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedAppointmentId(appt.id);

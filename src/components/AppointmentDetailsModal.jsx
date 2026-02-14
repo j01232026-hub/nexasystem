@@ -265,46 +265,50 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
                    <div className="flex justify-between items-end px-1">
                       <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">服務項目</h3>
                       <div className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">
-                        總計: ${items.reduce((sum, i) => sum + i.price, details.services?.price || 0)}
+                        總計: ${items.length > 0 
+                          ? items.reduce((sum, i) => sum + i.price, 0) 
+                          : (details.services?.price || 0)}
                       </div>
                    </div>
                    
                    <div className="space-y-2">
-                      {/* Primary Service */}
-                      {details.services && (
-                        <div className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
-                           <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
-                                <Receipt size={16} weight="fill" />
-                              </div>
-                              <div>
-                                 <div className="font-bold text-slate-700 text-sm">{details.services.name}</div>
-                                 <div className="text-xs text-slate-400">{details.services.duration} 分鐘</div>
-                              </div>
-                           </div>
-                           <div className="font-mono font-bold text-slate-700 text-sm">
-                             ${details.services.price}
-                           </div>
-                        </div>
+                      {/* Items List (Priority) */}
+                      {items.length > 0 ? (
+                        items.map(item => (
+                           <div key={item.id} className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
+                             <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
+                                  <Tag size={16} weight="fill" />
+                                </div>
+                                <div>
+                                   <div className="font-bold text-slate-700 text-sm">{item.services?.name}</div>
+                                   <div className="text-xs text-slate-400">{item.duration} 分鐘</div>
+                                </div>
+                             </div>
+                             <div className="font-mono font-bold text-slate-700 text-sm">
+                               ${item.price}
+                             </div>
+                          </div>
+                        ))
+                      ) : (
+                        /* Fallback to Primary Service if no items */
+                        details.services && (
+                          <div className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
+                             <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
+                                  <Receipt size={16} weight="fill" />
+                                </div>
+                                <div>
+                                   <div className="font-bold text-slate-700 text-sm">{details.services.name}</div>
+                                   <div className="text-xs text-slate-400">{details.services.duration} 分鐘</div>
+                                </div>
+                             </div>
+                             <div className="font-mono font-bold text-slate-700 text-sm">
+                               ${details.services.price}
+                             </div>
+                          </div>
+                        )
                       )}
-                      
-                      {/* Additional Items */}
-                      {items.map(item => (
-                         <div key={item.id} className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
-                           <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
-                                <Tag size={16} weight="fill" />
-                              </div>
-                              <div>
-                                 <div className="font-bold text-slate-700 text-sm">{item.services?.name}</div>
-                                 <div className="text-xs text-slate-400">{item.duration} 分鐘</div>
-                              </div>
-                           </div>
-                           <div className="font-mono font-bold text-slate-700 text-sm">
-                             ${item.price}
-                           </div>
-                        </div>
-                      ))}
                    </div>
                 </div>
               )}
