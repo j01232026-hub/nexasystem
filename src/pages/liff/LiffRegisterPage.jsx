@@ -14,23 +14,46 @@ const LiffRegisterPage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tenantName, setTenantName] = useState('Loading...');
+  const [resolvedTenantId, setResolvedTenantId] = useState(null);
   const [error, setError] = useState('');
 
-  // Fetch Tenant Name
+  // Fetch Tenant Name and Resolve ID
   useEffect(() => {
     const fetchTenant = async () => {
       try {
-        const { data, error } = await supabase
-          .from('tenants')
-          .select('name')
-          .eq('id', tenantId)
-          .maybeSingle(); // Use maybeSingle to avoid error on 0 rows
+        // Try to fetch by ID first (if it's a UUID)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+        
+        let query = supabase.from('tenants').select('id, name');
+        
+        if (isUuid) {
+            query = query.eq('id', tenantId);
+        } else {
+            query = query.eq('slug', tenantId);
+        }
+
+        const { data, error } = await query.maybeSingle();
         
         if (data) {
           setTenantName(data.name);
+          setResolvedTenantId(data.id);
         } else {
-            // Fallback if RLS blocks access
+            // Fallback: If we can't find it (maybe RLS blocks slug lookup?), we might have a problem.
+            // But if tenantId is actually the slug 'demo' or 'nexa-demo-dev', we need to find the real ID.
+            // Let's try to find 'nexa-demo-dev' hardcoded if 'demo' is passed? 
+            // Or just fail gracefully.
+            
+            console.warn('Tenant not found by ID/Slug:', tenantId);
             setTenantName('NEXA Demo Salon');
+            // We can't set resolvedTenantId if we didn't find it.
+            // But for the demo purpose, if the user is using 'demo' slug, let's try to look up 'nexa-demo-dev' as a fallback?
+            if (tenantId === 'demo') {
+                const { data: demoData } = await supabase.from('tenants').select('id, name').eq('slug', 'nexa-demo-dev').maybeSingle();
+                if (demoData) {
+                    setTenantName(demoData.name);
+                    setResolvedTenantId(demoData.id);
+                }
+            }
         }
       } catch (err) {
         console.error('Error fetching tenant:', err);
@@ -46,6 +69,14 @@ const LiffRegisterPage = () => {
     setError('');
     setIsSubmitting(true);
 
+    if (!resolvedTenantId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId)) {
+        setError('系統錯誤：無法確認店家 ID (Invalid Tenant)');
+        setIsSubmitting(false);
+        return;
+    }
+
+    const targetTenantId = resolvedTenantId || tenantId;
+
     if (!phoneNumber || phoneNumber.length < 8) {
         setError('請輸入有效的手機號碼');
         setIsSubmitting(false);
@@ -57,7 +88,7 @@ const LiffRegisterPage = () => {
         // For simplicity, we just create a new customer linked to this LINE ID
         
         const newCustomer = {
-            tenant_id: tenantId,
+            tenant_id: targetTenantId,
             line_user_id: liffUser.lineUserId,
             name: liffUser.displayName, // Main name field
             line_display_name: liffUser.displayName, // Specific line name field
