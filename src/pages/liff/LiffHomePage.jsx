@@ -9,7 +9,7 @@ const LiffHomePage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
   const navigate = useNavigate();
-  const { liffUser } = useLiffAuth();
+  const { liffUser, loading } = useLiffAuth();
 
   // Get current hour for greeting
   const currentHour = new Date().getHours();
@@ -18,6 +18,14 @@ const LiffHomePage = () => {
     greeting = '午安';
   } else if (currentHour >= 17) {
     greeting = '晚安';
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   const displayName = liffUser?.displayName || '訪客';
