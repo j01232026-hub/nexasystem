@@ -22,12 +22,24 @@ const LiffBookingPage = () => {
   const [staffList, setStaffList] = useState([]);
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]); 
+  const [isMockMode, setIsMockMode] = useState(false);
 
   // Resolve Tenant ID (Slug -> UUID)
   useEffect(() => {
     const resolveTenant = async () => {
         if (!tenantId) return;
         
+        // Hardcoded Mapping for Demo/Dev
+        const TENANT_MAPPING = {
+            'demo': '074fe7e8-7881-447d-81eb-9faa638d2270',
+            'nexa-demo-dev': '074fe7e8-7881-447d-81eb-9faa638d2270'
+        };
+
+        if (TENANT_MAPPING[tenantId]) {
+            setRealTenantId(TENANT_MAPPING[tenantId]);
+            return;
+        }
+
         // Check if it's already a UUID
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
         
@@ -140,22 +152,25 @@ const LiffBookingPage = () => {
   const fetchStaff = async () => {
     if (!realTenantId) {
         setStaffList(mockStaff);
+        setIsMockMode(true);
         return;
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('staff')
       .select('*')
       .eq('tenant_id', realTenantId)
       .eq('is_active', true);
     
-    if (data && data.length > 0) {
+    if (error || !data || data.length === 0) {
+        console.warn('Using mock staff due to error or empty data:', error);
+        setStaffList(mockStaff);
+        setIsMockMode(true);
+    } else {
         const staffWithAny = [
              ...data,
             { id: 'any', display_name: '不指定', avatar_url: '', isAny: true }
         ];
         setStaffList(staffWithAny);
-    } else {
-        setStaffList(mockStaff);
     }
   };
 
@@ -163,30 +178,35 @@ const LiffBookingPage = () => {
     if (!realTenantId) {
         setServices(mockServices);
         setCategories(mockCategories);
+        setIsMockMode(true);
         return;
     }
     
-    const { data: cats } = await supabase
+    const { data: cats, error: catError } = await supabase
       .from('service_categories')
       .select('*')
       .eq('tenant_id', realTenantId);
 
-    if (cats && cats.length > 0) {
-        setCategories(cats);
-    } else {
+    if (catError || !cats || cats.length === 0) {
+        console.warn('Using mock categories due to error or empty data:', catError);
         setCategories(mockCategories);
+        setIsMockMode(true);
+    } else {
+        setCategories(cats);
     }
 
-    const { data: svcs } = await supabase
+    const { data: svcs, error: svcError } = await supabase
       .from('services')
       .select('*')
       .eq('tenant_id', realTenantId)
       .eq('is_active', true);
     
-    if (svcs && svcs.length > 0) {
-        setServices(svcs);
-    } else {
+    if (svcError || !svcs || svcs.length === 0) {
+        console.warn('Using mock services due to error or empty data:', svcError);
         setServices(mockServices);
+        setIsMockMode(true);
+    } else {
+        setServices(svcs);
     }
   };
 
@@ -292,6 +312,17 @@ const LiffBookingPage = () => {
       }
       
       setLoading(true);
+      
+      // Mock Mode Bypass
+      if (isMockMode) {
+          setTimeout(() => {
+              setLoading(false);
+              alert('預約模擬成功！(Demo Mode: 資料未寫入資料庫)');
+              navigate(`/liff/${tenantId}`); // Or wherever appropriate
+          }, 1500);
+          return;
+      }
+
       try {
           // 1. Find or Create Customer
           let customerId = liffUser?.dbId;
