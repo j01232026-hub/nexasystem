@@ -243,12 +243,28 @@ const LiffBookingPage = () => {
     }
   }, [liffUser]);
 
+  // Deposit State
+  const [depositConfig, setDepositConfig] = useState(null);
+
   useEffect(() => {
     if (realTenantId) {
         fetchStaff();
         fetchServicesAndCategories();
+        fetchTenantSettings();
     }
   }, [realTenantId]);
+
+  const fetchTenantSettings = async () => {
+      const { data, error } = await supabase
+          .from('tenants')
+          .select('deposit_config')
+          .eq('id', realTenantId)
+          .single();
+      
+      if (data?.deposit_config) {
+          setDepositConfig(data.deposit_config);
+      }
+  };
 
   const fetchStaff = async () => {
     if (!realTenantId) {
@@ -477,6 +493,26 @@ const LiffBookingPage = () => {
           
           const endTime = addMinutes(startTime, selectedService.duration);
           
+          // Check Deposit Requirement
+          let status = 'confirmed';
+          let depositRequired = false;
+          
+          if (depositConfig?.enabled && depositConfig?.start_date && depositConfig?.end_date) {
+              const bookingDate = new Date(selectedDate);
+              const start = new Date(depositConfig.start_date);
+              const end = new Date(depositConfig.end_date);
+              
+              // Reset times for pure date comparison
+              bookingDate.setHours(0,0,0,0);
+              start.setHours(0,0,0,0);
+              end.setHours(23,59,59,999);
+              
+              if (bookingDate >= start && bookingDate <= end) {
+                  status = 'pending_deposit';
+                  depositRequired = true;
+              }
+          }
+
           const { data: appointment, error: apptError } = await supabase
               .from('appointments')
               .insert({
@@ -486,7 +522,7 @@ const LiffBookingPage = () => {
                   service_id: selectedService.id,
                   start_time: startTime.toISOString(),
                   end_time: endTime.toISOString(),
-                  status: 'confirmed'
+                  status: status
               })
               .select()
               .single();
@@ -505,9 +541,18 @@ const LiffBookingPage = () => {
               
            if (itemError) throw itemError;
            
-           showModal('預約成功', '您的預約已確認！', true);
+           if (depositRequired) {
+               showModal(
+                   '預約保留中', 
+                   `您的預約時段屬於熱門時段，需預付訂金 $${depositConfig.amount} 才能保留。\n\n請匯款至：\n${depositConfig.bank_info}\n\n請於 24 小時內完成匯款，逾期將自動取消。`, 
+                   true
+               );
+           } else {
+               showModal('預約成功', '您的預約已確認！', true);
+           }
+           
            // In real LIFF, might close window or redirect
-           setTimeout(() => navigate(`/liff/${tenantId}/records`), 2000);
+           setTimeout(() => navigate(`/liff/${tenantId}/records`), depositRequired ? 5000 : 2000);
            
       } catch (error) {
           console.error(error);

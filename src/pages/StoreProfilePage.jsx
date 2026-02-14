@@ -25,7 +25,14 @@ const StoreProfilePage = () => {
     phone: '',
     address: '',
     logo_url: '',
-    cover_url: ''
+    cover_url: '',
+    deposit_config: {
+        enabled: false,
+        amount: 0,
+        start_date: '',
+        end_date: '',
+        bank_info: ''
+    }
   });
   const [uploading, setUploading] = useState(false);
 
@@ -96,7 +103,14 @@ const StoreProfilePage = () => {
             phone: tenantData.phone || '', 
             address: tenantData.address || '',
             logo_url: tenantData.logo_url || '',
-            cover_url: tenantData.cover_url || ''
+            cover_url: tenantData.cover_url || '',
+            deposit_config: tenantData.deposit_config || {
+                enabled: false,
+                amount: 0,
+                start_date: '',
+                end_date: '',
+                bank_info: ''
+            }
         });
       }
 
@@ -115,15 +129,33 @@ const StoreProfilePage = () => {
             phone: store.phone || '',
             address: store.address || '',
             logo_url: store.logo_url || '',
-            cover_url: store.cover_url || ''
+            cover_url: store.cover_url || '',
+            deposit_config: store.deposit_config || {
+                enabled: false,
+                amount: 0,
+                start_date: '',
+                end_date: '',
+                bank_info: ''
+            }
         });
     }
     setIsEditing(!isEditing);
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    if (name.startsWith('deposit_')) {
+        const field = name.replace('deposit_', '');
+        setFormData(prev => ({
+            ...prev,
+            deposit_config: {
+                ...prev.deposit_config,
+                [field]: type === 'checkbox' ? checked : value
+            }
+        }));
+    } else {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileUpload = async (e, type) => {
@@ -164,7 +196,8 @@ const StoreProfilePage = () => {
                 phone: formData.phone,
                 address: formData.address,
                 logo_url: formData.logo_url,
-                cover_url: formData.cover_url
+                cover_url: formData.cover_url,
+                deposit_config: formData.deposit_config
             })
             .eq('id', profile.tenant_id);
 
@@ -402,6 +435,81 @@ const StoreProfilePage = () => {
                             placeholder="請輸入完整地址" 
                             className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/50 border border-slate-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all placeholder:text-slate-300 text-slate-700 font-medium"
                         />
+                        </div>
+                    </div>
+
+                    {/* Deposit Settings */}
+                    <div className="pt-6 border-t border-slate-200">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <span className="w-1 h-5 bg-rose-500 rounded-full mr-2"></span>
+                            訂金與大月模式設定
+                        </h3>
+                        
+                        <div className="bg-white/50 rounded-xl p-4 border border-slate-200 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-bold text-slate-700">啟用訂金模式</label>
+                                <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        name="deposit_enabled"
+                                        checked={formData.deposit_config?.enabled || false}
+                                        onChange={handleInputChange}
+                                        className="absolute w-6 h-6 opacity-0 z-10 cursor-pointer"
+                                    />
+                                    <div className={`w-11 h-6 bg-gray-200 rounded-full shadow-inner transition-colors ${formData.deposit_config?.enabled ? 'bg-rose-500' : ''}`}></div>
+                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.deposit_config?.enabled ? 'translate-x-5' : ''}`}></div>
+                                </div>
+                            </div>
+
+                            {formData.deposit_config?.enabled && (
+                                <div className="space-y-4 pt-2 animate-fadeIn">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1">開始日期</label>
+                                            <input 
+                                                type="date"
+                                                name="deposit_start_date"
+                                                value={formData.deposit_config?.start_date || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1">結束日期</label>
+                                            <input 
+                                                type="date"
+                                                name="deposit_end_date"
+                                                value={formData.deposit_config?.end_date || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1">訂金金額 ($)</label>
+                                        <input 
+                                            type="number"
+                                            name="deposit_amount"
+                                            value={formData.deposit_config?.amount || 0}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm font-mono"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1">匯款資訊 / Line ID</label>
+                                        <textarea 
+                                            name="deposit_bank_info"
+                                            value={formData.deposit_config?.bank_info || ''}
+                                            onChange={handleInputChange}
+                                            rows="3"
+                                            placeholder="例如：銀行代碼 822 帳號 123... 或 Line ID: @salon123"
+                                            className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

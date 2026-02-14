@@ -51,7 +51,7 @@ const LiffRecordsPage = () => {
       const now = new Date();
       const upcoming = data.filter(appt => 
         isFuture(parseISO(appt.start_time)) && 
-        ['confirmed', 'scheduled'].includes(appt.status)
+        ['confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
       ).sort((a, b) => compareAsc(parseISO(a.start_time), parseISO(b.start_time)));
 
       const history = data.filter(appt => 
@@ -171,11 +171,12 @@ const LiffRecordsPage = () => {
 
 const UpcomingCard = ({ appt, themeColor, onCancel }) => {
   const startDate = parseISO(appt.start_time);
+  const isPendingDeposit = appt.status === 'pending_deposit';
   
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
       {/* Left Accent Bar */}
-      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: themeColor }}></div>
+      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: isPendingDeposit ? '#f97316' : themeColor }}></div>
       
       <div className="flex justify-between items-start mb-4 pl-2">
         <div>
@@ -183,8 +184,8 @@ const UpcomingCard = ({ appt, themeColor, onCancel }) => {
             <span className="text-sm font-bold text-gray-900">
               {format(startDate, 'M月d日 (EEEE)', { locale: zhTW })}
             </span>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-              即將到來
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isPendingDeposit ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+              {isPendingDeposit ? '待付訂金' : '即將到來'}
             </span>
           </div>
           <div className="text-2xl font-bold text-gray-900 font-mono">
@@ -203,6 +204,9 @@ const UpcomingCard = ({ appt, themeColor, onCancel }) => {
           <div>
             <h3 className="font-bold text-gray-900">{appt.services?.name}</h3>
             <p className="text-xs text-gray-500 mt-0.5">服務人員：{appt.staff?.display_name || '不指定'}</p>
+            {isPendingDeposit && (
+                <p className="text-xs text-orange-600 font-bold mt-1">請盡快聯繫店家完成匯款</p>
+            )}
           </div>
         </div>
 
