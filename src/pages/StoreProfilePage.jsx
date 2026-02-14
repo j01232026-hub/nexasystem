@@ -327,8 +327,14 @@ const StoreProfilePage = () => {
                     <div className="relative -mt-10 mb-6 flex items-end justify-between">
                         <div>
                             <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-md">
-                                <div className="w-full h-full bg-rose-50 rounded-xl flex items-center justify-center text-rose-300">
-                                    <Storefront className="w-8 h-8" weight="light" />
+                                <div className="w-full h-full bg-rose-50 rounded-xl flex items-center justify-center text-rose-300 overflow-hidden relative">
+                                    <img 
+                                        src="/logo.png" 
+                                        alt="Store Logo" 
+                                        className="w-full h-full object-cover relative z-10"
+                                        onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                    <Storefront className="w-8 h-8 absolute z-0" weight="light" />
                                 </div>
                             </div>
                             <div className="mt-3">
