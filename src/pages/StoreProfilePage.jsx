@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Storefront, Phone, MapPin, Image, CheckCircle, PencilSimple, Plus, UserCircle, Trash, Buildings, ArrowLeft, X } from '@phosphor-icons/react';
 import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
+import Toast from '../components/ui/Toast';
 import { supabase } from '../lib/supabaseClient';
 
 const StoreProfilePage = () => {
@@ -13,6 +14,7 @@ const StoreProfilePage = () => {
   const [staffList, setStaffList] = useState([]);
   const [branches, setBranches] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Branch Modal State
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
@@ -154,11 +156,19 @@ const StoreProfilePage = () => {
     const { name, value, type, checked } = e.target;
     if (name.startsWith('deposit_')) {
         const field = name.replace('deposit_', '');
+        
+        let processedValue = type === 'checkbox' ? checked : value;
+        
+        // Convert number inputs to numbers
+        if (type === 'number') {
+            processedValue = value === '' ? 0 : Number(value);
+        }
+
         setFormData(prev => ({
             ...prev,
             deposit_config: {
                 ...prev.deposit_config,
-                [field]: type === 'checkbox' ? checked : value
+                [field]: processedValue
             }
         }));
     } else {
@@ -197,6 +207,8 @@ const StoreProfilePage = () => {
   const handleSave = async () => {
     try {
         setLoading(true);
+        console.log('Saving deposit_config:', formData.deposit_config);
+
         const { error } = await supabase
             .from('tenants')
             .update({
@@ -214,9 +226,10 @@ const StoreProfilePage = () => {
         // Refresh
         await fetchStoreData();
         // setIsEditing(false); // Stay in edit mode as per user request
-        alert('儲存成功！');
+        setToast({ message: '儲存成功！', type: 'success' });
     } catch (error) {
-        alert('儲存失敗: ' + error.message);
+        console.error('Save error:', error);
+        setToast({ message: '儲存失敗: ' + error.message, type: 'error' });
     } finally {
         setLoading(false);
     }
@@ -305,6 +318,7 @@ const StoreProfilePage = () => {
   return (
     <div className="bg-rose-50 min-h-screen p-6 relative overflow-hidden font-sans pb-24">
       <BackgroundDecoration />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       
       <div className="max-w-2xl mx-auto">
         {/* Header */}
