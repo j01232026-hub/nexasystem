@@ -11,6 +11,18 @@ const LiffHomePage = () => {
   const navigate = useNavigate();
   const { liffUser, loading, error } = useLiffAuth();
 
+  // Redirect to registration if not registered
+  React.useEffect(() => {
+    if (!loading && liffUser && !liffUser.isRegistered) {
+        // For now, we will just simulate auto-registration or show a mock alert
+        // In a real app, navigate to /liff/{tenantId}/register
+        // But for this "smart loading" demo, the user wants to see the "Check".
+        
+        // Let's navigate to a registration page? 
+        // Or we can just show a "Welcome New User" modal here.
+    }
+  }, [loading, liffUser]);
+
   // Get current hour for greeting
   const currentHour = new Date().getHours();
   let greeting = '早安';
@@ -57,13 +69,31 @@ const LiffHomePage = () => {
           <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">{greeting}，{displayName}</h1>
-              <p className="text-gray-500 text-base font-medium">今天想做點什麼改變呢？</p>
+              {liffUser && !liffUser.isRegistered ? (
+                 <div className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold animate-pulse">
+                    尚未綁定會員
+                 </div>
+              ) : (
+                 <p className="text-gray-500 text-base font-medium">今天想做點什麼改變呢？</p>
+              )}
             </div>
-            <div className="w-12 h-12 rounded-full p-0.5 shadow-md bg-white">
+            <div className="w-12 h-12 rounded-full p-0.5 shadow-md bg-white relative">
                <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
+               {liffUser && liffUser.isRegistered && (
+                  <div className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white w-4 h-4 rounded-full"></div>
+               )}
             </div>
           </div>
           
+          {liffUser && !liffUser.isRegistered ? (
+             <button
+                onClick={() => alert('這裡將跳轉至會員註冊/綁定頁面')}
+                className="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg flex items-center justify-center space-x-2"
+                style={{ background: themeColor }}
+             >
+                <span>✨ 立即成為會員</span>
+             </button>
+          ) : (
           <button
             onClick={() => navigate(`/liff/${tenantId}/booking/new`)}
             className="w-full py-5 rounded-2xl text-white font-bold text-lg shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] flex items-center justify-between px-8 transform active:scale-[0.98] transition-all relative overflow-hidden group border border-white/20"
@@ -87,6 +117,7 @@ const LiffHomePage = () => {
                 <ArrowRight size={18} />
             </div>
           </button>
+          )}
         </div>
       </div>
 

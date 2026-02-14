@@ -26,12 +26,36 @@ export function LiffAuthProvider({ children }) {
                   sessionStorage.removeItem('liff_login_attempts');
                   
                   const profile = await liff.getProfile();
+                  
+                  // Query Supabase to check if customer exists
+                  let dbId = null;
+                  let isRegistered = false;
+                  
+                  try {
+                      // Note: We need a way to filter by tenant if we are multi-tenant strict.
+                      // For now, we search globally or just take the first match.
+                      // In a real scenario, we should probably pass tenantId to this context or search appropriately.
+                      const { data: customer, error: dbError } = await supabase
+                        .from('customers')
+                        .select('id')
+                        .eq('line_user_id', profile.userId)
+                        .maybeSingle();
+                        
+                      if (customer) {
+                          dbId = customer.id;
+                          isRegistered = true;
+                      }
+                  } catch (e) {
+                      console.error('Error checking customer registration:', e);
+                  }
+
                   const user = {
                     lineUserId: profile.userId,
                     displayName: profile.displayName,
                     pictureUrl: profile.pictureUrl,
                     isFriend: true,
-                    dbId: null
+                    dbId: dbId,
+                    isRegistered: isRegistered
                   };
                   setLiffUser(user);
                   setIsAuthenticated(true);
