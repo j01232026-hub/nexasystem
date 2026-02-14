@@ -396,7 +396,6 @@ const LiffBookingPage = () => {
            const { error: itemError } = await supabase
               .from('appointment_items')
               .insert({
-                  tenant_id: tenantId,
                   appointment_id: appointment.id,
                   service_id: selectedService.id,
                   price: selectedService.price,
