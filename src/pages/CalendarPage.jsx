@@ -133,7 +133,10 @@ const CalendarPage = () => {
         currentStaff = staffData || [];
         setStaff(currentStaff);
         
-        // Removed default selection logic to keep "選擇設計師" as default
+        // Default to first staff member
+        if (currentStaff.length > 0 && !selectedStaffId) {
+            setSelectedStaffId(currentStaff[0].id);
+        }
       }
 
       // 3. Fetch Appointments
@@ -308,21 +311,6 @@ const CalendarPage = () => {
                 onClick={() => setIsStaffSelectorOpen(false)}
               />
               <div className="absolute top-full right-0 mt-2 w-full bg-white rounded-xl shadow-xl border border-rose-100 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
-                <button
-                  onClick={() => {
-                    setSelectedStaffId(null);
-                    setIsStaffSelectorOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-rose-50 transition-colors flex items-center justify-between group
-                    ${selectedStaffId === null ? 'bg-rose-50/50 text-rose-600 font-bold' : 'text-slate-600'}
-                  `}
-                >
-                  <span className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${selectedStaffId === null ? 'bg-rose-500' : 'bg-transparent group-hover:bg-rose-200 transition-colors'}`} />
-                    選擇設計師
-                  </span>
-                  {selectedStaffId === null && <CheckCircle weight="bold" className="text-rose-500" size={14} />}
-                </button>
                 {staff.map(member => (
                   <button
                     key={member.id}
