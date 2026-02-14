@@ -208,8 +208,13 @@ const StoreProfilePage = () => {
     try {
         setLoading(true);
         console.log('Saving deposit_config:', formData.deposit_config);
+        console.log('Target Tenant ID:', profile?.tenant_id);
 
-        const { error } = await supabase
+        if (!profile?.tenant_id) {
+            throw new Error('找不到店家 ID (Tenant ID is missing)');
+        }
+
+        const { data, error } = await supabase
             .from('tenants')
             .update({
                 name: formData.name,
@@ -219,13 +224,22 @@ const StoreProfilePage = () => {
                 cover_url: formData.cover_url,
                 deposit_config: formData.deposit_config
             })
-            .eq('id', profile.tenant_id);
+            .eq('id', profile.tenant_id)
+            .select();
 
         if (error) throw error;
         
+        if (!data || data.length === 0) {
+            console.warn('No rows updated! Possible RLS issue or ID mismatch.');
+            // throw new Error('資料更新失敗 (未找到對應店家資料)');
+             setToast({ message: '警告：資料未寫入資料庫，請檢查權限或是店家 ID', type: 'error' });
+             return;
+        }
+
+        console.log('Update success, updated data:', data);
+        
         // Refresh
         await fetchStoreData();
-        // setIsEditing(false); // Stay in edit mode as per user request
         setToast({ message: '儲存成功！', type: 'success' });
     } catch (error) {
         console.error('Save error:', error);
