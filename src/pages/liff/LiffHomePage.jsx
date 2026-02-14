@@ -131,8 +131,8 @@ const LiffHomePage = () => {
                 boxShadow: `0 15px 30px -10px ${themeColor}60` 
             }}
           >
-            {/* Glassy Shine Effect */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/20 to-transparent opacity-60"></div>
+            {/* Dynamic Shine Effect */}
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer pointer-events-none"></div>
             
             {/* Icon Circle */}
             <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
