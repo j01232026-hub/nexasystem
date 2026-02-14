@@ -9,17 +9,78 @@ export function LiffAuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check local storage for existing session (Simulate persistent login)
+    // Initialize LIFF SDK
+    const initLiff = async () => {
+       try {
+          if (import.meta.env.VITE_LIFF_ID) {
+              // Dynamically load LIFF SDK if not present (optional, usually index.html handles it)
+              // But here we assume window.liff is available via script tag in index.html
+              
+              await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
+              console.log('LIFF Initialized');
+              
+              if (liff.isLoggedIn()) {
+                  const profile = await liff.getProfile();
+                  const user = {
+                    lineUserId: profile.userId,
+                    displayName: profile.displayName,
+                    pictureUrl: profile.pictureUrl,
+                    isFriend: true,
+                    dbId: null
+                  };
+                  setLiffUser(user);
+                  setIsAuthenticated(true);
+              }
+          }
+       } catch (error) {
+          console.error('LIFF Init Failed:', error);
+       }
+       setLoading(false);
+    };
+
+    // Check local storage first for speed, then init LIFF
     const storedUser = localStorage.getItem('liff_user_session');
     if (storedUser) {
       setLiffUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
     }
-    setLoading(false);
+    
+    initLiff();
   }, []);
 
   const login = async (mockData) => {
     setLoading(true);
+
+    try {
+      // 1. Check if LIFF SDK is available and initialized
+      if (typeof liff !== 'undefined' && import.meta.env.VITE_LIFF_ID) {
+        if (!liff.isInClient() && !liff.isLoggedIn()) {
+           // If in browser (not LINE app) and not logged in, trigger LINE Login
+           liff.login();
+           return; // Login redirects, so we stop here
+        }
+        
+        // If already logged in or in client
+        const profile = await liff.getProfile();
+        const user = {
+            lineUserId: profile.userId,
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl,
+            isFriend: true, // We assume true or check via API in future
+            dbId: null
+        };
+        
+        localStorage.setItem('liff_user_session', JSON.stringify(user));
+        setLiffUser(user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
+       console.error('LIFF Login Error:', error);
+       // Fallback to mock login if LIFF fails or not present
+    }
+
     // Simulate API call / LINE Login delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
