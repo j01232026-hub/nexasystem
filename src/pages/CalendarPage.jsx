@@ -80,12 +80,12 @@ const CalendarPage = () => {
         endRange = endOfWeek(monthEnd, { weekStartsOn: 0 }).toISOString();
       }
 
-      const { data: apptData, error } = await supabase
+    const { data: apptData, error } = await supabase
         .from('appointments')
         .select(`
           *,
           customers (name, phone),
-          services (name, duration, price),
+          services (name, duration, price, service_categories (color)),
           staff (display_name)
         `)
         .eq('tenant_id', profile.tenant_id)
@@ -139,9 +139,35 @@ const CalendarPage = () => {
 
     // Status Colors
     let statusColor = 'border-l-4 border-indigo-500 bg-indigo-50 text-indigo-700';
+    
+    // 1. Check Service Category Color (Priority for Confirmed/Scheduled)
+    const categoryColor = appt.services?.service_categories?.color;
+    const colorMap = {
+      rose: 'border-rose-500 bg-rose-50 text-rose-900',
+      pink: 'border-pink-500 bg-pink-50 text-pink-900',
+      purple: 'border-purple-500 bg-purple-50 text-purple-900',
+      indigo: 'border-indigo-500 bg-indigo-50 text-indigo-900',
+      blue: 'border-blue-500 bg-blue-50 text-blue-900',
+      cyan: 'border-cyan-500 bg-cyan-50 text-cyan-900',
+      teal: 'border-teal-500 bg-teal-50 text-teal-900',
+      emerald: 'border-emerald-500 bg-emerald-50 text-emerald-900',
+      green: 'border-green-500 bg-green-50 text-green-900',
+      lime: 'border-lime-500 bg-lime-50 text-lime-900',
+      yellow: 'border-yellow-500 bg-yellow-50 text-yellow-900',
+      amber: 'border-amber-500 bg-amber-50 text-amber-900',
+      orange: 'border-orange-500 bg-orange-50 text-orange-900',
+      red: 'border-red-500 bg-red-50 text-red-900',
+      slate: 'border-slate-500 bg-slate-50 text-slate-900',
+      gray: 'border-gray-500 bg-gray-50 text-gray-900',
+    };
+
+    if (categoryColor && colorMap[categoryColor]) {
+      statusColor = `border-l-4 ${colorMap[categoryColor]}`;
+    }
+
+    // 2. Status Overrides (Critical statuses override category color)
     if (appt.status === 'completed') statusColor = 'border-l-4 border-green-500 bg-green-50 text-green-800';
     if (appt.status === 'cancelled') statusColor = 'border-l-4 border-red-500 bg-red-50 text-red-800 opacity-60';
-    if (appt.status === 'confirmed') statusColor = 'border-l-4 border-indigo-600 bg-indigo-100 text-indigo-900';
     if (appt.status === 'blocked') statusColor = 'border-l-4 border-slate-500 bg-slate-200/80 text-slate-700 pattern-diagonal-lines-sm';
 
     return {
@@ -301,87 +327,81 @@ const CalendarPage = () => {
               </div>
             )}
 
-            {/* Day View (Single Column Full Width) */}
+            {/* Day View (Multi-Column for Staff) */}
             {view === 'day' && (
-              <div className="flex-1 min-w-0 border-r border-rose-50 relative group bg-white/20">
-                {/* Column Header */}
-                  <div className="h-16 bg-white/80 border-b border-rose-100 flex items-center justify-center gap-3 sticky top-0 z-10 backdrop-blur-md shadow-sm">
-                    {staff.find(s => s.id === selectedStaffId) ? (
-                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-rose-100 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                             {staff.find(s => s.id === selectedStaffId)?.display_name?.[0] || 'S'}
-                          </div>
-                          <span className="text-lg font-bold text-slate-800 tracking-wide">
-                             {staff.find(s => s.id === selectedStaffId)?.display_name}
-                          </span>
-                       </div>
-                    ) : (
-                       <span className="text-lg font-bold text-slate-700">本日行程 (全體)</span>
-                    )}
-                  </div>
-
-                {/* Time Slots & Appointments Container */}
-                <div className="relative">
-                  {/* Time Slots Background */}
-                  {timeSlots.map(hour => (
-                    <div key={hour} className="h-[60px] border-b border-rose-50/50"></div>
-                  ))}
-
-                  {/* Appointments */}
-                  {appointments
-                    .filter(appt => (!selectedStaffId || appt.staff_id === selectedStaffId) && isSameDay(parseISO(appt.start_time), selectedDate))
-                    .map(appt => {
-                      const style = getAppointmentStyle(appt);
-                      const isBlocked = appt.status === 'blocked';
-                      return (
-                        <div 
-                          key={appt.id}
-                          style={{ top: style.top, height: style.height }}
-                          className={`${style.className.replace('rounded', '').replace('border-rose-500', 'border-indigo-500')} !left-0 !right-0 shadow-sm z-10 border-l-4`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedAppointmentId(appt.id);
-                          }}
-                        >
-                          {isBlocked ? (
-                            <div className="flex flex-col h-full justify-center px-3">
-                               <div className="font-bold flex items-center gap-2 text-sm">
-                                 <Lock size={14} weight="fill" />
-                                 {appt.notes?.split(' - ')[0] || '鎖定'}
-                               </div>
-                               {appt.notes?.split(' - ')[1] && (
-                                 <div className="text-xs opacity-80">{appt.notes.split(' - ')[1]}</div>
-                               )}
-                            </div>
-                          ) : (
-                            <div className="flex flex-col h-full justify-center px-3 overflow-hidden">
-                               <div className="flex flex-row items-baseline w-full">
-                                  {/* Left Column: Name & Phone */}
-                                  <div className="flex flex-col min-w-fit pr-4">
-                                     <span className="font-bold text-base text-slate-900 leading-tight">
-                                        {appt.customers?.name || '未知客'}
-                                     </span>
-                                     {appt.customers?.phone && (
-                                        <div className="text-sm text-slate-500 font-mono mt-0.5 leading-tight">
-                                           {appt.customers.phone}
-                                        </div>
-                                     )}
-                                  </div>
-   
-                                  {/* Right Column: Tags */}
-                                  <div className="flex flex-wrap items-center content-center gap-1.5 flex-1">
-                                     <span className="bg-white/60 px-1.5 py-0.5 rounded text-xs font-medium text-slate-700 shadow-sm border border-black/5 whitespace-nowrap">
-                                        {appt.services?.name}
-                                     </span>
-                                     {/* Future multi-service tags support */}
-                                  </div>
-                               </div>
-                            </div>
-                          )}
+              <div className="flex-1 flex overflow-x-auto min-w-0 divide-x divide-rose-50 bg-white/20">
+                {(selectedStaffId ? staff.filter(s => s.id === selectedStaffId) : staff).map(member => {
+                   const memberAppts = appointments.filter(appt => 
+                       appt.staff_id === member.id && isSameDay(parseISO(appt.start_time), selectedDate)
+                   );
+                   
+                   return (
+                     <div key={member.id} className="flex-1 min-w-[200px] relative group border-r border-rose-50 last:border-r-0">
+                        {/* Column Header */}
+                        <div className="h-16 bg-white/80 border-b border-rose-100 flex items-center justify-center gap-2 sticky top-0 z-20 backdrop-blur-md shadow-sm">
+                           <div className="w-8 h-8 rounded-full bg-rose-500 border-2 border-rose-100 flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0">
+                              {member.display_name?.[0] || 'S'}
+                           </div>
+                           <span className="text-base font-bold text-slate-800 truncate max-w-[120px]">
+                              {member.display_name}
+                           </span>
                         </div>
-                      );
-                    })}
-                </div>
+
+                        {/* Time Slots Background */}
+                        <div className="absolute inset-0 top-16 z-0 pointer-events-none">
+                           {timeSlots.map(hour => (
+                             <div key={hour} className="h-[60px] border-b border-rose-50/50 w-full"></div>
+                           ))}
+                        </div>
+
+                        {/* Appointments Container */}
+                        <div className="relative z-10">
+                           {memberAppts.map(appt => {
+                             const style = getAppointmentStyle(appt);
+                             const isBlocked = appt.status === 'blocked';
+                             
+                             return (
+                               <div 
+                                 key={appt.id}
+                                 style={{ top: style.top, height: style.height }}
+                                 className={`${style.className} !left-1 !right-1 shadow-sm z-10`}
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setSelectedAppointmentId(appt.id);
+                                 }}
+                               >
+                                 {isBlocked ? (
+                                   <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
+                                      <div className="font-bold flex items-center gap-1 text-xs truncate">
+                                        <Lock size={12} weight="fill" />
+                                        {appt.notes?.split(' - ')[0] || '鎖定'}
+                                      </div>
+                                   </div>
+                                 ) : (
+                                   <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
+                                      <div className="font-bold text-sm text-slate-900 leading-tight truncate">
+                                         {appt.customers?.name || '未知客'}
+                                      </div>
+                                      <div className="text-xs opacity-90 truncate mt-0.5">
+                                         {appt.services?.name}
+                                      </div>
+                                   </div>
+                                 )}
+                               </div>
+                             );
+                           })}
+                        </div>
+                     </div>
+                   );
+                })}
+
+                {/* Empty State */}
+                {staff.length === 0 && !loading && (
+                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-20 min-w-[300px]">
+                     <User size={48} weight="duotone" className="mb-4 opacity-50" />
+                     <p>尚無員工資料，請先至員工管理新增。</p>
+                   </div>
+                )}
               </div>
             )}
 
