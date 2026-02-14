@@ -4,6 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NEXA (奈沙) - 2026 AI Native</title>
+    <!-- Global Error Trap for Mobile Debugging -->
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        var extra = !col ? '' : '\ncolumn: ' + col;
+        extra += !error ? '' : '\nerror: ' + error;
+        // Create a floating error box if not exists
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'debug-error-box';
+          box.style.position = 'fixed';
+          box.style.top = '0';
+          box.style.left = '0';
+          box.style.width = '100%';
+          box.style.height = '100%';
+          box.style.zIndex = '9999';
+          box.style.background = 'rgba(255,255,255,0.95)';
+          box.style.color = 'red';
+          box.style.padding = '20px';
+          box.style.overflow = 'auto';
+          box.style.fontFamily = 'monospace';
+          box.style.whiteSpace = 'pre-wrap';
+          document.body.appendChild(box);
+        }
+        box.innerHTML += "Error: " + msg + "\nurl: " + url + "\nline: " + line + extra + "\n\n";
+        return false;
+      };
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        var box = document.getElementById('debug-error-box');
+        if (!box) {
+           // Re-create box code or simple alert fallback
+           alert("Unhandled Rejection: " + event.reason);
+        } else {
+           box.innerHTML += "Unhandled Rejection: " + event.reason + "\n\n";
+        }
+      });
+    </script>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   </head>
   <body>
