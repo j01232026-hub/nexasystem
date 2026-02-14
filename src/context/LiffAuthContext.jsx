@@ -22,6 +22,9 @@ export function LiffAuthProvider({ children }) {
               console.log('LIFF Initialized');
               
               if (liff.isLoggedIn()) {
+                  // Login success - clear loop protection
+                  sessionStorage.removeItem('liff_login_attempts');
+                  
                   const profile = await liff.getProfile();
                   const user = {
                     lineUserId: profile.userId,
@@ -34,9 +37,21 @@ export function LiffAuthProvider({ children }) {
                   setIsAuthenticated(true);
               } else {
                  if (liff.isInClient()) {
-                    // Auto login if in LINE app but not logged in (rare)
-                    liff.login();
-                    return;
+                    // Loop Protection: Prevent infinite redirects
+                    const attempts = parseInt(sessionStorage.getItem('liff_login_attempts') || '0');
+                    
+                    if (attempts < 3) {
+                        sessionStorage.setItem('liff_login_attempts', (attempts + 1).toString());
+                        // Explicitly redirect back to the current page to avoid Root -> C-side loop
+                        liff.login({ redirectUri: window.location.href });
+                        return;
+                    } else {
+                        // Too many attempts, stop and show error/manual button
+                        console.error('LIFF Auto-login loop detected');
+                        setError('Unable to log in automatically. Please tap "Retry" or try again later.');
+                        setLoading(false);
+                        return;
+                    }
                  }
               }
           } else {
