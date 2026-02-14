@@ -238,8 +238,15 @@ const StoreProfilePage = () => {
 
         console.log('Update success, updated data:', data);
         
+        // Update local store state directly instead of fetching to avoid race conditions
+        const updatedTenant = data[0];
+        setStore(updatedTenant);
+        
+        // We don't need to reset formData because it's already what the user typed.
+        // Just update the profile/store reference so if they cancel later, it reverts to this new version.
+        
         // Refresh
-        await fetchStoreData();
+        // await fetchStoreData(); // Removed to prevent stale data overwriting form
         setToast({ message: '儲存成功！', type: 'success' });
     } catch (error) {
         console.error('Save error:', error);
