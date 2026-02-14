@@ -507,7 +507,7 @@ const LiffBookingPage = () => {
            
            showModal('預約成功', '您的預約已確認！', true);
            // In real LIFF, might close window or redirect
-           setTimeout(() => navigate(`/liff/${tenantId}`), 2000);
+           setTimeout(() => navigate(`/liff/${tenantId}/records`), 2000);
            
       } catch (error) {
           console.error(error);

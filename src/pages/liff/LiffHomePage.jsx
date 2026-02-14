@@ -13,7 +13,6 @@ const LiffHomePage = () => {
   const { tenantId } = useParams();
   const navigate = useNavigate();
   const { liffUser, loading, error } = useLiffAuth();
-  const [upcomingAppt, setUpcomingAppt] = useState(null);
 
   // Redirect to registration if not registered
   useEffect(() => {
@@ -21,31 +20,6 @@ const LiffHomePage = () => {
         navigate(`/liff/${tenantId}/register`, { replace: true });
     }
   }, [loading, liffUser, navigate, tenantId]);
-
-  // Fetch upcoming appointment
-  useEffect(() => {
-    if (liffUser?.dbId) {
-        const fetchUpcoming = async () => {
-            const now = new Date().toISOString();
-            const { data } = await supabase
-                .from('appointments')
-                .select(`
-                    *,
-                    services (name, duration),
-                    staff (display_name)
-                `)
-                .eq('customer_id', liffUser.dbId)
-                .gte('start_time', now)
-                .in('status', ['confirmed', 'scheduled'])
-                .order('start_time', { ascending: true })
-                .limit(1)
-                .maybeSingle();
-            
-            setUpcomingAppt(data);
-        };
-        fetchUpcoming();
-    }
-  }, [liffUser]);
 
   // Get current hour for greeting
   const currentHour = new Date().getHours();
@@ -149,7 +123,6 @@ const LiffHomePage = () => {
           )}
         </div>
       </div>
-
       {/* Live Links / Smart Slots */}
       <div className="p-5">
         <div className="flex justify-between items-center mb-4">
@@ -212,44 +185,6 @@ const LiffHomePage = () => {
           </div>
         </div>
       </div>
-
-      {/* Upcoming Appointment Snippet */}
-      {upcomingAppt && (
-        <div className="px-5 mt-2">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center space-x-2">
-            <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600">
-                <Clock weight="fill" size={16} />
-            </div>
-            <span>即將到來</span>
-          </h2>
-          
-          <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform">
-             {/* Background Decoration */}
-             <div className="absolute right-[-20px] bottom-[-40px] opacity-10 transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
-               <CalendarPlus size={140} />
-             </div>
-             
-             <div className="relative z-10">
-               <div className="flex justify-between items-start mb-4">
-                   <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-white/90 border border-white/10">
-                       距離預約還有 {differenceInDays(parseISO(upcomingAppt.start_time), new Date())} 天
-                   </span>
-                   <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                       <ArrowRight size={16} />
-                   </div>
-               </div>
-               
-               <h3 className="text-xl font-bold mb-1">{upcomingAppt.services?.name || '一般服務'}</h3>
-               <p className="text-white/60 text-sm mb-4">服務人員：{upcomingAppt.staff?.display_name || '不指定'}</p>
-               
-               <div className="flex items-center space-x-3 text-sm font-medium border-t border-white/10 pt-4">
-                   <Clock size={16} className="text-white/60" />
-                   <span>{format(parseISO(upcomingAppt.start_time), 'M月d日 (EEEE) HH:mm', { locale: zhTW })}</span>
-               </div>
-             </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
