@@ -11,6 +11,14 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Auto-redirect to C-side if in LIFF browser
+    // Defaulting to 'demo' tenant for now
+    if (window.liff && window.liff.isInClient()) {
+      navigate('/liff/demo/home');
+    }
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -185,6 +193,16 @@ const LoginPage = () => {
             {loading ? '登入中...' : '立即登入'}
             {!loading && <ArrowRight className="w-4 h-4 ml-2 text-slate-400 group-hover:translate-x-1 transition-transform" />}
           </button>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button" 
+              onClick={() => navigate('/liff/demo/home')}
+              className="text-sm text-gray-500 hover:text-violet-600 transition-colors underline"
+            >
+              (測試用) 前往 C 端預約首頁
+            </button>
+          </div>
         </form>
 
         {/* 分隔線 */}
