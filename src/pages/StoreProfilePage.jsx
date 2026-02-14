@@ -285,53 +285,66 @@ const StoreProfilePage = () => {
                 </div>
                 
                 <form className="space-y-6">
-                     <div className="grid grid-cols-2 gap-4">
-                        {/* Cover Upload */}
-                        <div>
-                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪封面 (Cover)</label>
-                            <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
-                                {formData.cover_url ? (
-                                    <img src={formData.cover_url} className="w-full h-full object-cover" alt="Cover" />
-                                ) : (
-                                    <>
-                                        <Image className="w-8 h-8 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
-                                        <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">上傳照片</span>
-                                    </>
-                                )}
-                                <input 
-                                    type="file" 
-                                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                                    accept="image/*"
-                                    onChange={(e) => handleFileUpload(e, 'cover_url')}
-                                    disabled={uploading}
-                                />
-                                {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
-                            </div>
-                        </div>
-
-                        {/* Logo Upload */}
-                        <div>
-                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪 LOGO</label>
-                            <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
+                    {/* Logo Upload - Centered and styled like Figure 2 */}
+                    <div className="flex flex-col items-center">
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">店鋪 LOGO</label>
+                        <div className="relative group cursor-pointer w-24 h-24 rounded-2xl bg-white p-1 shadow-md border-2 border-transparent hover:border-rose-300 transition-all">
+                            <div className="w-full h-full bg-rose-50 rounded-xl flex items-center justify-center text-rose-300 overflow-hidden relative">
                                 {formData.logo_url ? (
-                                    <img src={formData.logo_url} className="w-full h-full object-contain p-2" alt="Logo" />
+                                    <img src={formData.logo_url} className="w-full h-full object-contain p-1" alt="Logo" />
                                 ) : (
-                                    <>
-                                        <Storefront className="w-8 h-8 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
-                                        <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">上傳 LOGO</span>
-                                    </>
+                                    <Storefront className="w-10 h-10" weight="light" />
                                 )}
+                                
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm transition-opacity">
+                                        <PencilSimple className="w-4 h-4 text-slate-700" />
+                                    </div>
+                                </div>
+
                                 <input 
                                     type="file" 
-                                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                                     accept="image/*"
                                     onChange={(e) => handleFileUpload(e, 'logo_url')}
                                     disabled={uploading}
                                 />
-                                {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
+                                {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-30"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
                             </div>
                         </div>
-                     </div>
+                    </div>
+
+                    {/* Cover Upload - Full Width */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪封面 (Cover)</label>
+                        <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
+                            {formData.cover_url ? (
+                                <img src={formData.cover_url} className="w-full h-full object-cover" alt="Cover" />
+                            ) : (
+                                <>
+                                    <Image className="w-8 h-8 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
+                                    <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">點擊上傳店鋪照片</span>
+                                </>
+                            )}
+                            
+                            {/* Hover Overlay for existing image */}
+                            {formData.cover_url && (
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                    <span className="text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md">更換封面</span>
+                                </div>
+                            )}
+
+                            <input 
+                                type="file" 
+                                className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                                accept="image/*"
+                                onChange={(e) => handleFileUpload(e, 'cover_url')}
+                                disabled={uploading}
+                            />
+                            {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-30"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
+                        </div>
+                    </div>
 
                     {/* Store Name */}
                     <div>
