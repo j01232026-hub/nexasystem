@@ -14,14 +14,9 @@ const LiffHomePage = () => {
   // Redirect to registration if not registered
   React.useEffect(() => {
     if (!loading && liffUser && !liffUser.isRegistered) {
-        // For now, we will just simulate auto-registration or show a mock alert
-        // In a real app, navigate to /liff/{tenantId}/register
-        // But for this "smart loading" demo, the user wants to see the "Check".
-        
-        // Let's navigate to a registration page? 
-        // Or we can just show a "Welcome New User" modal here.
+        navigate(`/liff/${tenantId}/register`, { replace: true });
     }
-  }, [loading, liffUser]);
+  }, [loading, liffUser, navigate, tenantId]);
 
   // Get current hour for greeting
   const currentHour = new Date().getHours();
@@ -38,6 +33,11 @@ const LiffHomePage = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
     );
+  }
+
+  // Prevent rendering if not registered (while redirecting)
+  if (liffUser && !liffUser.isRegistered) {
+      return null; 
   }
 
   if (error) {

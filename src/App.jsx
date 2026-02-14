@@ -19,6 +19,7 @@ import LiffBookingPage from './pages/liff/LiffBookingPage'
 import LiffRecordsPage from './pages/liff/LiffRecordsPage'
 import LiffNewsPage from './pages/liff/LiffNewsPage'
 import LiffProfilePage from './pages/liff/LiffProfilePage'
+import LiffRegisterPage from './pages/liff/LiffRegisterPage'
 
 function App() {
   return (
@@ -44,6 +45,9 @@ function App() {
       <Route path="/liff/:tenantId" element={<LiffRoot />}>
         {/* Fullscreen Booking Flow */}
         <Route path="booking/new" element={<LiffBookingPage />} />
+        
+        {/* Registration Page */}
+        <Route path="register" element={<LiffRegisterPage />} />
         
         {/* Tab Navigation Pages */}
         <Route element={<LiffLayout />}>

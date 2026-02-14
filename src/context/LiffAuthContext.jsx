@@ -158,13 +158,33 @@ export function LiffAuthProvider({ children }) {
     setIsAuthenticated(false);
   };
 
+  const refreshUser = async () => {
+      if (liffUser && liffUser.lineUserId) {
+          try {
+              const { data: customer } = await supabase
+                  .from('customers')
+                  .select('id')
+                  .eq('line_user_id', liffUser.lineUserId)
+                  .maybeSingle();
+              
+              if (customer) {
+                  setLiffUser(prev => ({
+                      ...prev,
+                      dbId: customer.id,
+                      isRegistered: true
+                  }));
+              }
+          } catch (e) {
+              console.error('Error refreshing user:', e);
+          }
+      }
+  };
+
   return (
-    <LiffAuthContext.Provider value={{ liffUser, isAuthenticated, loading, login, logout, error }}>
+    <LiffAuthContext.Provider value={{ liffUser, isAuthenticated, loading, login, logout, error, refreshUser }}>
       {children}
     </LiffAuthContext.Provider>
   );
 }
 
-export function useLiffAuth() {
-  return useContext(LiffAuthContext);
-}
+export const useLiffAuth = () => useContext(LiffAuthContext);
