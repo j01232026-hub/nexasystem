@@ -86,6 +86,9 @@ const LiffBookingPage = () => {
     if (liffUser?.displayName) {
         setCustomerName(liffUser.displayName);
     }
+    if (liffUser?.phone) {
+        setCustomerPhone(liffUser.phone);
+    }
   }, [liffUser]);
 
   useEffect(() => {

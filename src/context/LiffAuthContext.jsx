@@ -30,6 +30,7 @@ export function LiffAuthProvider({ children }) {
                   // Query Supabase to check if customer exists
                   let dbId = null;
                   let isRegistered = false;
+                  let dbUser = null;
                   
                   try {
                       // Note: We need a way to filter by tenant if we are multi-tenant strict.
@@ -37,13 +38,14 @@ export function LiffAuthProvider({ children }) {
                       // In a real scenario, we should probably pass tenantId to this context or search appropriately.
                       const { data: customer, error: dbError } = await supabase
                         .from('customers')
-                        .select('id')
+                        .select('*')
                         .eq('line_user_id', profile.userId)
                         .maybeSingle();
                         
                       if (customer) {
                           dbId = customer.id;
                           isRegistered = true;
+                          dbUser = customer;
                       }
                   } catch (e) {
                       console.error('Error checking customer registration:', e);
@@ -55,7 +57,8 @@ export function LiffAuthProvider({ children }) {
                     pictureUrl: profile.pictureUrl,
                     isFriend: true,
                     dbId: dbId,
-                    isRegistered: isRegistered
+                    isRegistered: isRegistered,
+                    ...dbUser // Spread db user props like phone
                   };
                   setLiffUser(user);
                   setIsAuthenticated(true);
@@ -163,7 +166,7 @@ export function LiffAuthProvider({ children }) {
           try {
               const { data: customer } = await supabase
                   .from('customers')
-                  .select('id')
+                  .select('*')
                   .eq('line_user_id', liffUser.lineUserId)
                   .maybeSingle();
               
@@ -171,7 +174,8 @@ export function LiffAuthProvider({ children }) {
                   setLiffUser(prev => ({
                       ...prev,
                       dbId: customer.id,
-                      isRegistered: true
+                      isRegistered: true,
+                      ...customer
                   }));
               }
           } catch (e) {
