@@ -14,6 +14,7 @@ import { CaretLeft, CaretRight, CalendarBlank, User, Sparkle, CaretDown, Check, 
 const LiffBookingPage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
+  const [realTenantId, setRealTenantId] = useState(null);
   const navigate = useNavigate();
   const { liffUser } = useLiffAuth();
 
@@ -21,6 +22,38 @@ const LiffBookingPage = () => {
   const [staffList, setStaffList] = useState([]);
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]); 
+
+  // Resolve Tenant ID (Slug -> UUID)
+  useEffect(() => {
+    const resolveTenant = async () => {
+        if (!tenantId) return;
+        
+        // Check if it's already a UUID
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+        
+        if (isUuid) {
+            setRealTenantId(tenantId);
+        } else {
+            try {
+                const { data, error } = await supabase
+                    .from('tenants')
+                    .select('id')
+                    .eq('slug', tenantId)
+                    .maybeSingle();
+                
+                if (data) {
+                    setRealTenantId(data.id);
+                } else {
+                    console.error('Tenant not found for slug:', tenantId);
+                    // Optionally navigate to error page or handle gracefully
+                }
+            } catch (err) {
+                console.error('Error resolving tenant:', err);
+            }
+        }
+    };
+    resolveTenant();
+  }, [tenantId]); 
   
   // Selection State
   const [selectedCategory, setSelectedCategory] = useState(''); // Category ID
@@ -92,25 +125,27 @@ const LiffBookingPage = () => {
   }, [liffUser]);
 
   useEffect(() => {
-    fetchStaff();
-    fetchServicesAndCategories();
-    
-    // Simulate "Sticky Logic" - Auto-select last designer (Anna)
-    setTimeout(() => {
-        const lastStaff = mockStaff.find(s => s.id === 'm4');
-        if (lastStaff) setSelectedStaff(lastStaff);
-    }, 500);
-  }, [tenantId]);
+    if (realTenantId) {
+        fetchStaff();
+        fetchServicesAndCategories();
+        
+        // Simulate "Sticky Logic" - Auto-select last designer (Anna)
+        setTimeout(() => {
+            const lastStaff = mockStaff.find(s => s.id === 'm4');
+            if (lastStaff) setSelectedStaff(lastStaff);
+        }, 500);
+    }
+  }, [realTenantId]);
 
   const fetchStaff = async () => {
-    if (!tenantId) {
+    if (!realTenantId) {
         setStaffList(mockStaff);
         return;
     }
     const { data } = await supabase
       .from('staff')
       .select('*')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', realTenantId)
       .eq('is_active', true);
     
     if (data && data.length > 0) {
@@ -125,7 +160,7 @@ const LiffBookingPage = () => {
   };
 
   const fetchServicesAndCategories = async () => {
-    if (!tenantId) {
+    if (!realTenantId) {
         setServices(mockServices);
         setCategories(mockCategories);
         return;
@@ -134,7 +169,7 @@ const LiffBookingPage = () => {
     const { data: cats } = await supabase
       .from('service_categories')
       .select('*')
-      .eq('tenant_id', tenantId);
+      .eq('tenant_id', realTenantId);
 
     if (cats && cats.length > 0) {
         setCategories(cats);
@@ -145,7 +180,7 @@ const LiffBookingPage = () => {
     const { data: svcs } = await supabase
       .from('services')
       .select('*')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', realTenantId)
       .eq('is_active', true);
     
     if (svcs && svcs.length > 0) {
@@ -278,7 +313,7 @@ const LiffBookingPage = () => {
                   .from('customers')
                   .select('*')
                   .eq('phone', customerPhone)
-                  .eq('tenant_id', tenantId)
+                  .eq('tenant_id', realTenantId)
                   .maybeSingle();
                customer = foundByPhone;
           }
@@ -288,7 +323,7 @@ const LiffBookingPage = () => {
               const { data: newCustomer, error: createError } = await supabase
                   .from('customers')
                   .insert({
-                      tenant_id: tenantId,
+                      tenant_id: realTenantId,
                       name: customerName,
                       phone: customerPhone,
                       line_user_id: liffUser?.lineUserId,
@@ -313,14 +348,13 @@ const LiffBookingPage = () => {
           const { data: appointment, error: apptError } = await supabase
               .from('appointments')
               .insert({
-                  tenant_id: tenantId,
+                  tenant_id: realTenantId,
                   customer_id: customer.id,
                   staff_id: selectedStaff.id === 'any' ? (staffList.find(s => !s.isAny)?.id) : selectedStaff.id,
                   service_id: selectedService.id,
                   start_time: startTime.toISOString(),
                   end_time: endTime.toISOString(),
-                  status: 'pending',
-                  notes: 'Created via LINE LIFF'
+                  status: 'confirmed'
               })
               .select()
               .single();
