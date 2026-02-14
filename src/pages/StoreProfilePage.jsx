@@ -245,10 +245,10 @@ const StoreProfilePage = () => {
         if (error) throw error;
         
         if (!data || data.length === 0) {
-            console.warn('No rows updated! Possible RLS issue or ID mismatch.');
-            setToast({ message: '警告：資料未寫入資料庫，請檢查權限或是店家 ID', type: 'error' });
-            return;
-        }
+                console.warn('No rows updated! Possible RLS issue or ID mismatch.');
+                setToast({ message: `警告：資料未寫入資料庫 (ID: ${profile?.tenant_id})，請檢查權限`, type: 'error' });
+                return;
+            }
 
         console.log('Update success, updated data:', data);
         
@@ -373,12 +373,6 @@ const StoreProfilePage = () => {
                 {/* Edit Form Content */}
                 <div className="mb-6 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800">編輯總店資料</h2>
-                    <button 
-                        onClick={handleEditToggle} 
-                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-medium transition-colors"
-                    >
-                        取消
-                    </button>
                 </div>
                 
                 <form className="space-y-6">
