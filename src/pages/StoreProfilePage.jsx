@@ -23,8 +23,11 @@ const StoreProfilePage = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    address: ''
+    address: '',
+    logo_url: '',
+    cover_url: ''
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchStoreData();
@@ -91,7 +94,9 @@ const StoreProfilePage = () => {
         setFormData({
             name: tenantData.name || '',
             phone: tenantData.phone || '', 
-            address: tenantData.address || ''
+            address: tenantData.address || '',
+            logo_url: tenantData.logo_url || '',
+            cover_url: tenantData.cover_url || ''
         });
       }
 
@@ -108,7 +113,9 @@ const StoreProfilePage = () => {
         setFormData({
             name: store.name || '',
             phone: store.phone || '',
-            address: store.address || ''
+            address: store.address || '',
+            logo_url: store.logo_url || '',
+            cover_url: store.cover_url || ''
         });
     }
     setIsEditing(!isEditing);
@@ -119,11 +126,58 @@ const StoreProfilePage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileUpload = async (e, type) => {
+    try {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${profile.tenant_id}/${type}_${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('store-assets')
+            .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('store-assets')
+            .getPublicUrl(fileName);
+
+        setFormData(prev => ({ ...prev, [type]: publicUrl }));
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('上傳失敗: ' + error.message);
+    } finally {
+        setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
-    // TODO: Implement save logic to update 'tenants' table
-    // For now, just simulate a save by updating local state
-    setStore(prev => ({ ...prev, ...formData }));
-    setIsEditing(false);
+    try {
+        setLoading(true);
+        const { error } = await supabase
+            .from('tenants')
+            .update({
+                name: formData.name,
+                phone: formData.phone,
+                address: formData.address,
+                logo_url: formData.logo_url,
+                cover_url: formData.cover_url
+            })
+            .eq('id', profile.tenant_id);
+
+        if (error) throw error;
+        
+        // Refresh
+        fetchStoreData();
+        setIsEditing(false);
+    } catch (error) {
+        alert('儲存失敗: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
   };
 
   // --- Branch Operations ---
@@ -231,15 +285,53 @@ const StoreProfilePage = () => {
                 </div>
                 
                 <form className="space-y-6">
-                     {/* Cover/Logo Upload */}
-                    <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪封面 / Logo</label>
-                        <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
-                        <Image className="w-10 h-10 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
-                        <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">點擊上傳店鋪照片</span>
-                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                     <div className="grid grid-cols-2 gap-4">
+                        {/* Cover Upload */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪封面 (Cover)</label>
+                            <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
+                                {formData.cover_url ? (
+                                    <img src={formData.cover_url} className="w-full h-full object-cover" alt="Cover" />
+                                ) : (
+                                    <>
+                                        <Image className="w-8 h-8 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
+                                        <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">上傳照片</span>
+                                    </>
+                                )}
+                                <input 
+                                    type="file" 
+                                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                                    accept="image/*"
+                                    onChange={(e) => handleFileUpload(e, 'cover_url')}
+                                    disabled={uploading}
+                                />
+                                {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
+                            </div>
                         </div>
-                    </div>
+
+                        {/* Logo Upload */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 pl-1">店鋪 LOGO</label>
+                            <div className="relative group cursor-pointer w-full h-40 rounded-2xl bg-rose-50 border-2 border-dashed border-rose-300 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-rose-500 hover:bg-rose-100">
+                                {formData.logo_url ? (
+                                    <img src={formData.logo_url} className="w-full h-full object-contain p-2" alt="Logo" />
+                                ) : (
+                                    <>
+                                        <Storefront className="w-8 h-8 text-rose-400 mb-2 group-hover:scale-110 transition-transform" weight="light" />
+                                        <span className="text-xs text-slate-400 font-medium group-hover:text-rose-500 transition-colors">上傳 LOGO</span>
+                                    </>
+                                )}
+                                <input 
+                                    type="file" 
+                                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                                    accept="image/*"
+                                    onChange={(e) => handleFileUpload(e, 'logo_url')}
+                                    disabled={uploading}
+                                />
+                                {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-rose-500"></div></div>}
+                            </div>
+                        </div>
+                     </div>
 
                     {/* Store Name */}
                     <div>
@@ -312,11 +404,14 @@ const StoreProfilePage = () => {
             {/* View Mode - Store Card */}
             <div className="bg-white rounded-3xl shadow-[0_4px_20px_0_rgba(0,0,0,0.03)] overflow-hidden border border-slate-100 mb-6">
                 {/* Cover Image */}
-                <div className="h-32 bg-gradient-to-r from-rose-100 to-orange-100 relative">
+                <div className="h-32 bg-gradient-to-r from-rose-100 to-orange-100 relative overflow-hidden">
+                    {store?.cover_url && (
+                        <img src={store.cover_url} alt="Cover" className="w-full h-full object-cover absolute inset-0" />
+                    )}
                     {/* Edit Button */}
                     <button 
                         onClick={handleEditToggle}
-                        className="absolute top-3 right-3 p-1.5 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full text-white transition-all"
+                        className="absolute top-3 right-3 p-1.5 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full text-white transition-all z-10"
                     >
                         <PencilSimple className="w-4 h-4 text-slate-600" />
                     </button>
@@ -326,15 +421,17 @@ const StoreProfilePage = () => {
                     {/* Store Basic Info */}
                     <div className="relative -mt-10 mb-6 flex items-end justify-between">
                         <div>
-                            <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-md">
+                            <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-md relative z-10">
                                 <div className="w-full h-full bg-rose-50 rounded-xl flex items-center justify-center text-rose-300 overflow-hidden relative">
-                                    <img 
-                                        src="/logo.png" 
-                                        alt="Store Logo" 
-                                        className="w-full h-full object-cover relative z-10"
-                                        onError={(e) => e.target.style.display = 'none'}
-                                    />
-                                    <Storefront className="w-8 h-8 absolute z-0" weight="light" />
+                                    {store?.logo_url ? (
+                                        <img 
+                                            src={store.logo_url} 
+                                            alt="Store Logo" 
+                                            className="w-full h-full object-contain p-1 bg-white"
+                                        />
+                                    ) : (
+                                        <Storefront className="w-8 h-8" weight="light" />
+                                    )}
                                 </div>
                             </div>
                             <div className="mt-3">
