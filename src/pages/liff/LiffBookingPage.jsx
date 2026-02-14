@@ -259,12 +259,29 @@ const LiffBookingPage = () => {
       setLoading(true);
       try {
           // 1. Find or Create Customer
-          let { data: customer, error: findError } = await supabase
-              .from('customers')
-              .select('*')
-              .eq('phone', customerPhone)
-              .eq('tenant_id', tenantId)
-              .single();
+          let customerId = liffUser?.dbId;
+          let customer = null;
+
+          if (customerId) {
+              // Fetch full customer object if we only have ID (though context might have it)
+              const { data: existingCustomer } = await supabase
+                  .from('customers')
+                  .select('*')
+                  .eq('id', customerId)
+                  .single();
+              customer = existingCustomer;
+          }
+
+          if (!customer) {
+               // Fallback: Find by phone
+               let { data: foundByPhone } = await supabase
+                  .from('customers')
+                  .select('*')
+                  .eq('phone', customerPhone)
+                  .eq('tenant_id', tenantId)
+                  .maybeSingle();
+               customer = foundByPhone;
+          }
               
           if (!customer) {
               // Create new customer
@@ -274,8 +291,10 @@ const LiffBookingPage = () => {
                       tenant_id: tenantId,
                       name: customerName,
                       phone: customerPhone,
-                      notes: `LINE User ID: ${liffUser?.lineUserId || 'Unknown'}`,
-                      avatar_url: liffUser?.pictureUrl
+                      line_user_id: liffUser?.lineUserId,
+                      line_display_name: liffUser?.displayName,
+                      line_picture_url: liffUser?.pictureUrl,
+                      notes: 'Created via LIFF Booking'
                   })
                   .select()
                   .single();
