@@ -626,6 +626,13 @@ const StoreProfilePage = () => {
                             <CheckCircle className="w-5 h-5 mr-2 text-emerald-400" weight="fill" />
                             儲存變更
                         </button>
+                        <button 
+                            type="button" 
+                            onClick={() => setIsEditing(false)}
+                            className="w-1/3 py-3.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-medium shadow-sm transition-colors flex items-center justify-center"
+                        >
+                            關閉視窗
+                        </button>
                     </div>
                 </form>
              </GlassPanel>
