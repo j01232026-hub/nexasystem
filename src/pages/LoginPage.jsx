@@ -4,20 +4,23 @@ import GlassPanel from '../components/ui/GlassPanel';
 import { User, Lock, ArrowRight, Sparkle, Code } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useLiffAuth } from '../context/LiffAuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, liffUser } = useLiffAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Auto-redirect to C-side if in LIFF browser
+    // Auto-redirect to C-side if in LIFF browser AND Authenticated
     // Defaulting to 'demo' tenant for now
-    if (window.liff && window.liff.isInClient()) {
+    if (window.liff && window.liff.isInClient() && isAuthenticated) {
+      console.log('Redirecting to C-side home...');
       navigate('/liff/demo/home');
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

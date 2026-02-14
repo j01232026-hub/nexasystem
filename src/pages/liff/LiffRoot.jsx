@@ -12,9 +12,7 @@ const LiffRoot = () => {
   
   return (
     <ThemeProvider tenantId={tenantId}>
-      <LiffAuthProvider>
-        <Outlet />
-      </LiffAuthProvider>
+      <Outlet />
     </ThemeProvider>
   );
 };
