@@ -281,7 +281,12 @@ const StoreProfilePage = () => {
                 {/* Edit Form Content */}
                 <div className="mb-6 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800">編輯總店資料</h2>
-                    <button onClick={handleEditToggle} className="text-slate-500 hover:text-slate-700 font-medium">取消</button>
+                    <button 
+                        onClick={handleEditToggle} 
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-medium transition-colors"
+                    >
+                        取消
+                    </button>
                 </div>
                 
                 <form className="space-y-6">
