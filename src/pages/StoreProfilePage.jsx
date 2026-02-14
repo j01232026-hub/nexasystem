@@ -187,7 +187,9 @@ const StoreProfilePage = () => {
 
         const { error: uploadError } = await supabase.storage
             .from('store-assets')
-            .upload(fileName, file);
+            .upload(fileName, file, {
+                upsert: true
+            });
 
         if (uploadError) throw uploadError;
 
@@ -196,9 +198,10 @@ const StoreProfilePage = () => {
             .getPublicUrl(fileName);
 
         setFormData(prev => ({ ...prev, [type]: publicUrl }));
+        setToast({ message: '圖片上傳成功！別忘了點擊儲存', type: 'success' });
     } catch (error) {
         console.error('Error uploading file:', error);
-        alert('上傳失敗: ' + error.message);
+        setToast({ message: '上傳失敗: ' + error.message, type: 'error' });
     } finally {
         setUploading(false);
     }
@@ -214,6 +217,18 @@ const StoreProfilePage = () => {
             throw new Error('找不到店家 ID (Tenant ID is missing)');
         }
 
+        // Clean up data before saving
+        const depositConfigToSave = {
+            ...formData.deposit_config,
+            // Ensure numbers are numbers
+            amount: Number(formData.deposit_config.amount) || 0,
+            ratio: Number(formData.deposit_config.ratio) || 0,
+            // Ensure strings are strings (not null)
+            start_date: formData.deposit_config.start_date || '',
+            end_date: formData.deposit_config.end_date || '',
+            bank_info: formData.deposit_config.bank_info || ''
+        };
+
         const { data, error } = await supabase
             .from('tenants')
             .update({
@@ -222,7 +237,7 @@ const StoreProfilePage = () => {
                 address: formData.address,
                 logo_url: formData.logo_url,
                 cover_url: formData.cover_url,
-                deposit_config: formData.deposit_config
+                deposit_config: depositConfigToSave
             })
             .eq('id', profile.tenant_id)
             .select();
@@ -231,9 +246,8 @@ const StoreProfilePage = () => {
         
         if (!data || data.length === 0) {
             console.warn('No rows updated! Possible RLS issue or ID mismatch.');
-            // throw new Error('資料更新失敗 (未找到對應店家資料)');
-             setToast({ message: '警告：資料未寫入資料庫，請檢查權限或是店家 ID', type: 'error' });
-             return;
+            setToast({ message: '警告：資料未寫入資料庫，請檢查權限或是店家 ID', type: 'error' });
+            return;
         }
 
         console.log('Update success, updated data:', data);
@@ -242,11 +256,12 @@ const StoreProfilePage = () => {
         const updatedTenant = data[0];
         setStore(updatedTenant);
         
-        // We don't need to reset formData because it's already what the user typed.
-        // Just update the profile/store reference so if they cancel later, it reverts to this new version.
-        
-        // Refresh
-        // await fetchStoreData(); // Removed to prevent stale data overwriting form
+        // Force update formData to match what we just saved/received
+        setFormData(prev => ({
+            ...prev,
+            deposit_config: updatedTenant.deposit_config || prev.deposit_config
+        }));
+
         setToast({ message: '儲存成功！', type: 'success' });
     } catch (error) {
         console.error('Save error:', error);
