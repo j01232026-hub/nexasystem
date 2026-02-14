@@ -542,9 +542,16 @@ const LiffBookingPage = () => {
            if (itemError) throw itemError;
            
            if (depositRequired) {
+               let depositAmount = depositConfig.amount || 0;
+               if (depositConfig.mode === 'ratio') {
+                   const price = selectedService.price || 0;
+                   const ratio = depositConfig.ratio || 30;
+                   depositAmount = Math.round((price * ratio) / 100);
+               }
+
                showModal(
                    '預約保留中', 
-                   `您的預約時段屬於熱門時段，需預付訂金 $${depositConfig.amount} 才能保留。\n\n請匯款至：\n${depositConfig.bank_info}\n\n請於 24 小時內完成匯款，逾期將自動取消。`, 
+                   `您的預約時段屬於熱門時段，需預付訂金 $${depositAmount} 才能保留。\n\n請匯款至：\n${depositConfig.bank_info}\n\n請於 24 小時內完成匯款，逾期將自動取消。`, 
                    true
                );
            } else {

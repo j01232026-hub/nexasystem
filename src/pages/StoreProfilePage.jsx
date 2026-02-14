@@ -28,7 +28,9 @@ const StoreProfilePage = () => {
     cover_url: '',
     deposit_config: {
         enabled: false,
+        mode: 'amount',
         amount: 0,
+        ratio: 30,
         start_date: '',
         end_date: '',
         bank_info: ''
@@ -104,12 +106,15 @@ const StoreProfilePage = () => {
             address: tenantData.address || '',
             logo_url: tenantData.logo_url || '',
             cover_url: tenantData.cover_url || '',
-            deposit_config: tenantData.deposit_config || {
+            deposit_config: {
                 enabled: false,
+                mode: 'amount',
                 amount: 0,
+                ratio: 30,
                 start_date: '',
                 end_date: '',
-                bank_info: ''
+                bank_info: '',
+                ...(tenantData.deposit_config || {})
             }
         });
       }
@@ -130,12 +135,15 @@ const StoreProfilePage = () => {
             address: store.address || '',
             logo_url: store.logo_url || '',
             cover_url: store.cover_url || '',
-            deposit_config: store.deposit_config || {
+            deposit_config: {
                 enabled: false,
+                mode: 'amount',
                 amount: 0,
+                ratio: 30,
                 start_date: '',
                 end_date: '',
-                bank_info: ''
+                bank_info: '',
+                ...(store.deposit_config || {})
             }
         });
     }
@@ -446,7 +454,7 @@ const StoreProfilePage = () => {
                         </h3>
                         
                         <div className="bg-white/50 rounded-xl p-4 border border-slate-200 space-y-4">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-4">
                                 <label className="text-sm font-bold text-slate-700">啟用訂金模式</label>
                                 <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
                                     <input 
@@ -461,31 +469,76 @@ const StoreProfilePage = () => {
                                 </div>
                             </div>
 
-                            {formData.deposit_config?.enabled && (
-                                <div className="space-y-4 pt-2 animate-fadeIn">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1">開始日期</label>
+                            <div className={`space-y-4 pt-2 transition-opacity duration-300 ${formData.deposit_config?.enabled ? 'opacity-100' : 'opacity-60'}`}>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1">開始日期</label>
+                                        <input 
+                                            type="date"
+                                            name="deposit_start_date"
+                                            value={formData.deposit_config?.start_date || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1">結束日期</label>
+                                        <input 
+                                            type="date"
+                                            name="deposit_end_date"
+                                            value={formData.deposit_config?.end_date || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Deposit Mode Selection */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-2">訂金計算方式</label>
+                                    <div className="flex space-x-4 mb-2">
+                                        <label className="flex items-center space-x-2 cursor-pointer">
                                             <input 
-                                                type="date"
-                                                name="deposit_start_date"
-                                                value={formData.deposit_config?.start_date || ''}
+                                                type="radio" 
+                                                name="deposit_mode" 
+                                                value="amount"
+                                                checked={formData.deposit_config?.mode !== 'ratio'} 
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                                className="text-rose-500 focus:ring-rose-500"
                                             />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1">結束日期</label>
+                                            <span className="text-sm text-slate-700">固定金額</span>
+                                        </label>
+                                        <label className="flex items-center space-x-2 cursor-pointer">
                                             <input 
-                                                type="date"
-                                                name="deposit_end_date"
-                                                value={formData.deposit_config?.end_date || ''}
+                                                type="radio" 
+                                                name="deposit_mode" 
+                                                value="ratio"
+                                                checked={formData.deposit_config?.mode === 'ratio'}
                                                 onChange={handleInputChange}
-                                                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                                className="text-rose-500 focus:ring-rose-500"
                                             />
+                                            <span className="text-sm text-slate-700">服務金額比例 (%)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {formData.deposit_config?.mode === 'ratio' ? (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1">訂金比例 (%)</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="number"
+                                                name="deposit_ratio"
+                                                value={formData.deposit_config?.ratio || 30}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                max="100"
+                                                className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm font-mono pl-3 pr-8"
+                                            />
+                                            <span className="absolute right-3 top-2 text-slate-400 text-sm">%</span>
                                         </div>
                                     </div>
-
+                                ) : (
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1">訂金金額 ($)</label>
                                         <input 
@@ -496,20 +549,20 @@ const StoreProfilePage = () => {
                                             className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm font-mono"
                                         />
                                     </div>
+                                )}
 
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-500 mb-1">匯款資訊 / Line ID</label>
-                                        <textarea 
-                                            name="deposit_bank_info"
-                                            value={formData.deposit_config?.bank_info || ''}
-                                            onChange={handleInputChange}
-                                            rows="3"
-                                            placeholder="例如：銀行代碼 822 帳號 123... 或 Line ID: @salon123"
-                                            className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1">匯款資訊 / Line ID</label>
+                                    <textarea 
+                                        name="deposit_bank_info"
+                                        value={formData.deposit_config?.bank_info || ''}
+                                        onChange={handleInputChange}
+                                        rows="3"
+                                        placeholder="例如：銀行代碼 822 帳號 123... 或 Line ID: @salon123"
+                                        className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                                    />
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
 
