@@ -404,15 +404,6 @@ const LiffBookingPage = () => {
              message = `該時段長度不足您的預約項目 (${selectedService?.duration}分鐘)，後續時段不足或已被預約`;
           }
 
-          // Append Staff Contact Info if specific staff is selected
-          if (selectedStaff && selectedStaff.id !== 'any') {
-              // Try to find phone number if available in staff object, otherwise use placeholder or generic message
-              // Assuming staff object might have 'phone' field based on standard practices, if not, we use generic.
-              // We'll check if 'phone' is in the staff object we fetched.
-              const staffPhone = selectedStaff.phone || '請查詢官網或店家資訊';
-              message += `\n\n如需預約，請電洽 ${selectedStaff.display_name}：${staffPhone}`;
-          }
-
           showModal('無法預約', message, true);
       }
   };
