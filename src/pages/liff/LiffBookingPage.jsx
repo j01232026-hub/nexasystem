@@ -140,12 +140,6 @@ const LiffBookingPage = () => {
     if (realTenantId) {
         fetchStaff();
         fetchServicesAndCategories();
-        
-        // Simulate "Sticky Logic" - Auto-select last designer (Anna)
-        setTimeout(() => {
-            const lastStaff = mockStaff.find(s => s.id === 'm4');
-            if (lastStaff) setSelectedStaff(lastStaff);
-        }, 500);
     }
   }, [realTenantId]);
 
