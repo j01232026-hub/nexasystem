@@ -212,8 +212,9 @@ const StoreProfilePage = () => {
         if (error) throw error;
         
         // Refresh
-        fetchStoreData();
-        setIsEditing(false);
+        await fetchStoreData();
+        // setIsEditing(false); // Stay in edit mode as per user request
+        alert('儲存成功！');
     } catch (error) {
         alert('儲存失敗: ' + error.message);
     } finally {
@@ -629,6 +630,42 @@ const StoreProfilePage = () => {
                             <MapPin className="w-4 h-4 mr-3 text-slate-400" />
                             {store?.address || '台北市大安區忠孝東路四段 123 號 (範例)'}
                         </div>
+
+                        {/* Deposit Info Display */}
+                        {store?.deposit_config?.enabled && (
+                            <div className="mt-6 p-4 bg-rose-50/50 rounded-xl border border-rose-100">
+                                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center">
+                                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full mr-2"></span>
+                                    目前訂金規則
+                                </h3>
+                                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                                    <div>
+                                        <span className="text-slate-500 block text-xs mb-0.5">計算方式</span>
+                                        <span className="font-medium text-slate-700">
+                                            {store.deposit_config.mode === 'ratio' ? '服務金額比例' : '固定金額'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-500 block text-xs mb-0.5">
+                                            {store.deposit_config.mode === 'ratio' ? '收取比例' : '收取金額'}
+                                        </span>
+                                        <span className="font-bold text-rose-500 font-mono">
+                                            {store.deposit_config.mode === 'ratio' 
+                                                ? `${store.deposit_config.ratio}%` 
+                                                : `$${store.deposit_config.amount}`}
+                                        </span>
+                                    </div>
+                                    {(store.deposit_config.start_date || store.deposit_config.end_date) && (
+                                        <div className="col-span-2">
+                                            <span className="text-slate-500 block text-xs mb-0.5">適用期間</span>
+                                            <span className="font-medium text-slate-700 font-mono text-xs">
+                                                {store.deposit_config.start_date || '未設定'} ~ {store.deposit_config.end_date || '未設定'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="border-t border-slate-100 my-6"></div>
