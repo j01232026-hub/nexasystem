@@ -24,14 +24,17 @@ const LiffRegisterPage = () => {
           .from('tenants')
           .select('name')
           .eq('id', tenantId)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid error on 0 rows
         
         if (data) {
           setTenantName(data.name);
+        } else {
+            // Fallback if RLS blocks access
+            setTenantName('NEXA Demo Salon');
         }
       } catch (err) {
         console.error('Error fetching tenant:', err);
-        setTenantName('NEXA Salon');
+        setTenantName('NEXA Demo Salon');
       }
     };
     
@@ -56,9 +59,10 @@ const LiffRegisterPage = () => {
         const newCustomer = {
             tenant_id: tenantId,
             line_user_id: liffUser.lineUserId,
-            name: liffUser.displayName,
+            name: liffUser.displayName, // Main name field
+            line_display_name: liffUser.displayName, // Specific line name field
             phone: phoneNumber,
-            avatar_url: liffUser.pictureUrl,
+            line_picture_url: liffUser.pictureUrl, // Correct column name
             notes: 'Created via LIFF Registration'
         };
 
