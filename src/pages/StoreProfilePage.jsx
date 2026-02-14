@@ -127,6 +127,25 @@ const StoreProfilePage = () => {
   };
 
   // --- Branch Operations ---
+  const handleDeleteBranch = async (branchId) => {
+    if (!confirm('確定要刪除此分店嗎？此動作無法復原。')) return;
+
+    try {
+      const { error } = await supabase
+        .from('branches')
+        .delete()
+        .eq('id', branchId);
+
+      if (error) throw error;
+
+      // Refresh data
+      fetchStoreData();
+    } catch (error) {
+      console.error('Error deleting branch:', error);
+      alert('刪除失敗: ' + error.message);
+    }
+  };
+
   const handleOpenBranchModal = (branch = null) => {
     if (branch) {
       setBranchForm({
@@ -410,12 +429,22 @@ const StoreProfilePage = () => {
                                         {branch.phone || '尚未設定電話'}
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={() => handleOpenBranchModal(branch)}
-                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
-                                >
-                                    <PencilSimple className="w-5 h-5" />
-                                </button>
+                                <div className="flex items-center space-x-1">
+                                    <button 
+                                        onClick={() => handleOpenBranchModal(branch)}
+                                        className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                                        title="編輯"
+                                    >
+                                        <PencilSimple className="w-5 h-5" />
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteBranch(branch.id)}
+                                        className="p-2 hover:bg-red-50 rounded-full transition-colors text-slate-400 hover:text-red-500"
+                                        title="刪除"
+                                    >
+                                        <Trash className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
