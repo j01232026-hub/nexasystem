@@ -99,8 +99,97 @@ const LiffBookingPage = () => {
     evening: allTimeSlots.slice(16)
   };
 
-  // Mock Unavailable Slots (e.g. booked or break)
-  const unavailableSlots = ['12:30', '15:00', '15:30', '14:30']; 
+  // Availability State
+  const [unavailableSlots, setUnavailableSlots] = useState([]);
+
+  // Fetch Availability
+  useEffect(() => {
+    const fetchAvailability = async () => {
+        if (isMockMode) {
+             setUnavailableSlots(['12:30', '15:00', '15:30', '14:30']);
+             return;
+        }
+
+        if (!realTenantId || !selectedStaff || !selectedDate) return;
+
+        const dayStart = new Date(selectedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(selectedDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        // Fetch appointments for the day
+        let query = supabase
+            .from('appointments')
+            .select('start_time, end_time, staff_id')
+            .eq('tenant_id', realTenantId)
+            .neq('status', 'cancelled')
+            .gte('start_time', dayStart.toISOString())
+            .lte('start_time', dayEnd.toISOString());
+
+        // If specific staff, filter in DB
+        if (selectedStaff.id !== 'any') {
+            query = query.eq('staff_id', selectedStaff.id);
+        }
+
+        const { data: appts, error } = await query;
+
+        if (error) {
+            console.error('Error fetching availability:', error);
+            return;
+        }
+
+        // Calculate blocked slots
+        const bookedSlots = new Set();
+        
+        // Helper: Get 30-min slots from time range
+        const getSlots = (startStr, endStr) => {
+             const s = new Date(startStr);
+             const e = new Date(endStr);
+             const slots = [];
+             let curr = new Date(s);
+             // Safety: limit while loop to prevent infinite loops if end <= start
+             let count = 0;
+             while (curr < e && count < 48) {
+                 slots.push(format(curr, 'HH:mm'));
+                 curr = addMinutes(curr, 30);
+                 count++;
+             }
+             return slots;
+        };
+
+        if (selectedStaff.id !== 'any') {
+            // Specific Staff: Block their slots
+            appts.forEach(appt => {
+                const slots = getSlots(appt.start_time, appt.end_time);
+                slots.forEach(slot => bookedSlots.add(slot));
+            });
+        } else {
+            // "Any" Staff: Block slot only if ALL active staff are booked
+            const realStaffCount = staffList.filter(s => !s.isAny).length;
+            if (realStaffCount > 0) {
+                const slotCounts = {}; // slot -> Set of staff_ids
+                
+                appts.forEach(appt => {
+                    const slots = getSlots(appt.start_time, appt.end_time);
+                    slots.forEach(slot => {
+                        if (!slotCounts[slot]) slotCounts[slot] = new Set();
+                        slotCounts[slot].add(appt.staff_id);
+                    });
+                });
+
+                Object.keys(slotCounts).forEach(slot => {
+                    if (slotCounts[slot].size >= realStaffCount) {
+                        bookedSlots.add(slot);
+                    }
+                });
+            }
+        }
+
+        setUnavailableSlots(Array.from(bookedSlots));
+    };
+
+    fetchAvailability();
+  }, [realTenantId, selectedStaff, selectedDate, staffList, isMockMode]); 
 
   // Mock Data for fallback
   const mockStaff = [
