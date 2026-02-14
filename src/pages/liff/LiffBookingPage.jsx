@@ -11,12 +11,30 @@ import {
 import { zhTW } from 'date-fns/locale';
 import { CaretLeft, CaretRight, CalendarBlank, User, Sparkle, CaretDown, Check, Star, WarningCircle } from '@phosphor-icons/react';
 
+import Modal from '../../components/ui/Modal';
+
 const LiffBookingPage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
   const [realTenantId, setRealTenantId] = useState(null);
   const navigate = useNavigate();
   const { liffUser } = useLiffAuth();
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    showLogo: false
+  });
+
+  const showModal = (title, message, showLogo = false) => {
+      setModalConfig({ isOpen: true, title, message, showLogo });
+  };
+
+  const closeModal = () => {
+      setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   // State
   const [staffList, setStaffList] = useState([]);
@@ -377,20 +395,31 @@ const LiffBookingPage = () => {
           setSelectedTime(time);
       } else {
           // Determine specific error message
+          let message = '';
           if (isTimeBlockedByBuffer(time)) {
-             alert('無法選擇過去時間，或需保留30分鐘緩衝時間');
+             message = '無法選擇過去時間，或需保留30分鐘緩衝時間';
           } else if (unavailableSlots.includes(time)) {
-             alert('該時段已被預約');
+             message = '該時段已被預約';
           } else {
-             alert(`該時段長度不足您的預約項目 (${selectedService?.duration}分鐘)，後續時段不足或已被預約`);
+             message = `該時段長度不足您的預約項目 (${selectedService?.duration}分鐘)，後續時段不足或已被預約`;
           }
+
+          // Append Staff Contact Info if specific staff is selected
+          if (selectedStaff && selectedStaff.id !== 'any') {
+              // Try to find phone number if available in staff object, otherwise use placeholder or generic message
+              // Assuming staff object might have 'phone' field based on standard practices, if not, we use generic.
+              // We'll check if 'phone' is in the staff object we fetched.
+              const staffPhone = selectedStaff.phone || '請查詢官網或店家資訊';
+              message += `\n\n如需預約，請電洽 ${selectedStaff.display_name}：${staffPhone}`;
+          }
+
+          showModal('無法預約', message, true);
       }
   };
 
-
   const handleConfirmBooking = async () => {
       if (!customerName || !customerPhone) {
-          alert('請填寫聯絡資訊');
+          showModal('提示', '請填寫聯絡資訊');
           return;
       }
       
@@ -398,11 +427,9 @@ const LiffBookingPage = () => {
       
       // Mock Mode Bypass
       if (isMockMode) {
-          setTimeout(() => {
-              setLoading(false);
-              alert('預約模擬成功！(Demo Mode: 資料未寫入資料庫)');
-              navigate(`/liff/${tenantId}`); // Or wherever appropriate
-          }, 1500);
+          setLoading(false);
+          showModal('成功', '預約模擬成功！(Demo Mode: 資料未寫入資料庫)', true);
+          setTimeout(() => navigate(`/liff/${tenantId}`), 2000);
           return;
       }
 
@@ -487,13 +514,13 @@ const LiffBookingPage = () => {
               
            if (itemError) throw itemError;
            
-           alert('預約成功！');
+           showModal('預約成功', '您的預約已確認！', true);
            // In real LIFF, might close window or redirect
-           navigate(`/liff/${tenantId}`);
+           setTimeout(() => navigate(`/liff/${tenantId}`), 2000);
            
       } catch (error) {
           console.error(error);
-          alert('預約失敗，請稍後再試: ' + error.message);
+          showModal('預約失敗', '請稍後再試: ' + error.message);
       } finally {
           setLoading(false);
       }
@@ -501,12 +528,32 @@ const LiffBookingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+      <Modal 
+          isOpen={modalConfig.isOpen}
+          onClose={closeModal}
+          title={modalConfig.title}
+          showLogo={modalConfig.showLogo}
+      >
+          <div className="whitespace-pre-wrap">{modalConfig.message}</div>
+      </Modal>
+
       {/* Header */}
-      <div className="bg-white p-4 sticky top-0 z-20 shadow-sm flex items-center">
-        <button onClick={() => navigate(-1)} className="mr-2 text-gray-600">
-          <CaretLeft size={24} />
-        </button>
-        <h1 className="text-lg font-bold text-gray-900">預約服務</h1>
+      <div className="bg-white p-4 sticky top-0 z-20 shadow-sm flex items-center justify-between">
+        <div className="flex items-center">
+            <button onClick={() => navigate(-1)} className="mr-2 text-gray-600">
+            <CaretLeft size={24} />
+            </button>
+            <h1 className="text-lg font-bold text-gray-900">預約服務</h1>
+        </div>
+        {/* Logo */}
+        <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-100 shadow-sm">
+             <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none'; }} 
+             />
+        </div>
       </div>
 
       <div className="p-4 space-y-6">

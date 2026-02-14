@@ -279,6 +279,14 @@ const CalendarPage = () => {
       {/* Header (White) */}
       <div className="sticky top-0 z-40 bg-white border-b border-rose-100 px-4 py-3 shadow-sm flex justify-between items-center">
         <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+           <div className="w-8 h-8 rounded-full overflow-hidden border border-rose-100 shadow-sm">
+                <img 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; }} 
+                />
+           </div>
           預約行事曆
         </h1>
         
