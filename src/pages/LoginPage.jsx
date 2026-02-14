@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import GlassPanel from '../components/ui/GlassPanel';
 import { User, Lock, ArrowRight, Sparkle, Code } from '@phosphor-icons/react';
