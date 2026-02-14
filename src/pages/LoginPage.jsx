@@ -8,10 +8,29 @@ import { useLiffAuth } from '../context/LiffAuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, liffUser } = useLiffAuth();
+  const { isAuthenticated, liffUser, loading: liffLoading } = useLiffAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isLiffEnvironment, setIsLiffEnvironment] = useState(true); // Default to true to prevent B-side flash
+
+  useEffect(() => {
+    // Check if we are in a potential LIFF environment immediately
+    const checkEnvironment = async () => {
+       // If window.liff exists or we are in a mobile context where LIFF might load
+       // We should be conservative.
+       
+       // However, useLiffAuth's 'loading' is the best indicator for "Are we done checking LIFF?"
+       if (!liffLoading) {
+           if (window.liff && window.liff.isInClient()) {
+               setIsLiffEnvironment(true);
+           } else {
+               setIsLiffEnvironment(false);
+           }
+       }
+    };
+    checkEnvironment();
+  }, [liffLoading]);
 
   useEffect(() => {
     // Auto-redirect to C-side if in LIFF browser AND Authenticated
@@ -21,6 +40,20 @@ const LoginPage = () => {
       navigate('/liff/demo/home');
     }
   }, [navigate, isAuthenticated]);
+
+  // Show Global Loader if:
+  // 1. LIFF SDK is still initializing (liffLoading)
+  // 2. We are in LIFF environment (waiting for redirect)
+  if (liffLoading || (isAuthenticated && window.liff?.isInClient())) {
+      return (
+        <div className="min-h-screen w-full flex items-center justify-center bg-white">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium animate-pulse">NEXA Loading...</p>
+            </div>
+        </div>
+      );
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
