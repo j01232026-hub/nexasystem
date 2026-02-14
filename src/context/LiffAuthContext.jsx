@@ -8,14 +8,16 @@ export function LiffAuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     // Initialize LIFF SDK
     const initLiff = async () => {
        try {
           if (import.meta.env.VITE_LIFF_ID) {
-              // Dynamically load LIFF SDK if not present (optional, usually index.html handles it)
-              // But here we assume window.liff is available via script tag in index.html
-              
+              if (!window.liff) {
+                  throw new Error('LIFF SDK not loaded');
+              }
               await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
               console.log('LIFF Initialized');
               
@@ -30,10 +32,19 @@ export function LiffAuthProvider({ children }) {
                   };
                   setLiffUser(user);
                   setIsAuthenticated(true);
+              } else {
+                 if (liff.isInClient()) {
+                    // Auto login if in LINE app but not logged in (rare)
+                    liff.login();
+                    return;
+                 }
               }
+          } else {
+             console.warn('VITE_LIFF_ID is missing');
           }
-       } catch (error) {
-          console.error('LIFF Init Failed:', error);
+       } catch (err) {
+          console.error('LIFF Init Failed:', err);
+          setError(err.message || 'LIFF Initialization Failed');
        }
        setLoading(false);
     };
@@ -109,7 +120,7 @@ export function LiffAuthProvider({ children }) {
   };
 
   return (
-    <LiffAuthContext.Provider value={{ liffUser, isAuthenticated, loading, login, logout }}>
+    <LiffAuthContext.Provider value={{ liffUser, isAuthenticated, loading, login, logout, error }}>
       {children}
     </LiffAuthContext.Provider>
   );

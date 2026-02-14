@@ -9,7 +9,7 @@ const LiffHomePage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
   const navigate = useNavigate();
-  const { liffUser, loading } = useLiffAuth();
+  const { liffUser, loading, error } = useLiffAuth();
 
   // Get current hour for greeting
   const currentHour = new Date().getHours();
@@ -25,6 +25,19 @@ const LiffHomePage = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+            <div className="bg-white p-6 rounded-xl shadow-md max-w-sm w-full text-center">
+                <h3 className="text-red-500 font-bold text-lg mb-2">Initialization Error</h3>
+                <p className="text-gray-600 mb-4 text-sm">{error}</p>
+                <p className="text-xs text-gray-400">LIFF ID: {import.meta.env.VITE_LIFF_ID || 'Not Set'}</p>
+                <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">Retry</button>
+            </div>
+        </div>
     );
   }
 
