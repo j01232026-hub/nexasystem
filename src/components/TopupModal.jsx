@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import walletService, { PaymentMethod, TopupOrderStatus } from '../lib/walletService';
-import { X, Cash, CreditCard, QrCode, Spinner, CheckCircle, User, MagnifyingGlass } from '@phosphor-icons/react';
+import { X, Money, CreditCard, QrCode, Spinner, CheckCircle, User, MagnifyingGlass } from '@phosphor-icons/react';
 
 const TopupModal = ({ isOpen, onClose, tenantId, operatorId, onSuccess }) => {
   const [step, setStep] = useState('search');
