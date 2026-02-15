@@ -183,10 +183,43 @@ const CalendarPage = () => {
 
       setAppointments(apptData || []);
 
+      // 4. Fetch Pending Deposits
+      if (profile.tenant_id) {
+        fetchPendingDeposits(profile.tenant_id);
+      }
+
     } catch (error) {
       console.error('Error fetching calendar data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingDeposits = async (tenantId) => {
+    try {
+      const { data, error } = await supabase
+        .from('deposit_reports')
+        .select(`
+          *,
+          appointments (
+            start_time,
+            customers (name, phone),
+            services (name, price)
+          )
+        `)
+        .eq('tenant_id', tenantId)
+        .eq('status', 'pending_confirmation')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        // If table doesn't exist yet, ignore error (dev mode)
+        if (error.code !== '42P01') console.error('Error fetching pending deposits:', error);
+        return;
+      }
+
+      setPendingDeposits(data || []);
+    } catch (err) {
+      console.error('Error in fetchPendingDeposits:', err);
     }
   };
 
