@@ -24,7 +24,8 @@ const getStatusLabel = (status) => {
     'completed': '已完成',
     'cancelled': '已取消',
     'no_show': 'NoShow',
-    'blocked': '鎖定'
+    'blocked': '鎖定',
+    'pending_deposit': '待付訂金'
   };
   return map[status] || status;
 };
@@ -37,7 +38,8 @@ const getStatusTagStyle = (status) => {
     'completed': 'bg-emerald-500/90 text-white',
     'cancelled': 'bg-slate-400/90 text-white',
     'no_show': 'bg-red-500/90 text-white',
-    'blocked': 'bg-slate-500/90 text-white'
+    'blocked': 'bg-slate-500/90 text-white',
+    'pending_deposit': 'bg-orange-500/90 text-white'
   };
   return map[status] || 'bg-gray-500/90 text-white';
 };

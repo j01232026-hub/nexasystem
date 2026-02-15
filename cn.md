@@ -488,3 +488,100 @@ CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled', 'no_show', '
 |------|--------|
 | 先添加約束，後更新數據 | 先更新數據，後添加約束 |
 | 無處理未知狀態值 | 新增處理未知狀態值的邏輯 |
+
+---
+
+### Step 7: 修復 C端預約顯示問題
+
+**日期**: 2026-02-15
+
+**問題回報**:
+1. C端預約後，即便 B端尚未確認，也必須出現在「我的行程」
+2. B端點選「已確認」後，C端卡片上的標籤消失
+3. 歷史預約也要有狀態標籤
+4. 訂金資訊消失
+
+#### 7.1 修復 C端預約過濾條件
+
+**文件**: `src/pages/liff/LiffRecordsPage.jsx`
+
+```jsx
+// 修正前：缺少 'pending' 狀態
+const upcoming = data.filter(appt => 
+  isFuture(parseISO(appt.start_time)) && 
+  ['confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
+);
+
+// 修正後：加入 'pending' 狀態
+const upcoming = data.filter(appt => 
+  isFuture(parseISO(appt.start_time)) && 
+  ['pending', 'confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
+);
+```
+
+#### 7.2 修復 C端卡片狀態標籤
+
+**UpcomingCard 組件** - 新增狀態標籤映射：
+
+```jsx
+const getStatusLabel = (status) => {
+  const map = {
+    'pending': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
+    'confirmed': { text: '已確認', color: 'bg-indigo-100 text-indigo-700' },
+    'scheduled': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
+    'pending_deposit': { text: '待付訂金', color: 'bg-orange-100 text-orange-700' }
+  };
+  return map[status] || { text: status, color: 'bg-gray-100 text-gray-600' };
+};
+```
+
+#### 7.3 修復歷史預約狀態標籤
+
+**HistoryCard 組件** - 新增完整狀態映射：
+
+```jsx
+const getStatusLabel = (status) => {
+  const map = {
+    'completed': { text: '已完成', color: 'bg-emerald-100 text-emerald-700' },
+    'cancelled': { text: '已取消', color: 'bg-red-50 text-red-500' },
+    'no_show': { text: '未到', color: 'bg-gray-200 text-gray-600' },
+    'pending': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
+    'confirmed': { text: '已確認', color: 'bg-indigo-100 text-indigo-700' }
+  };
+  return map[status] || { text: status, color: 'bg-gray-100 text-gray-400' };
+};
+```
+
+#### 7.4 新增 pending_deposit 狀態支援
+
+**CalendarPage.jsx**:
+```jsx
+const getStatusLabel = (status) => {
+  const map = {
+    // ... 其他狀態
+    'pending_deposit': '待付訂金'
+  };
+};
+
+const getStatusTagStyle = (status) => {
+  const map = {
+    // ... 其他狀態
+    'pending_deposit': 'bg-orange-500/90 text-white'
+  };
+};
+```
+
+**AppointmentDetailsModal.jsx**:
+```jsx
+// 同樣新增 pending_deposit 狀態支援
+'pending_deposit': '待付訂金'
+'pending_deposit': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200'
+'pending_deposit': <Warning weight="fill" size={12} />
+```
+
+#### 7.5 訂金資訊確認
+
+訂金資訊功能原本就存在，問題是狀態標籤沒有支援 `pending_deposit`，導致標籤顯示異常。修正後：
+- `pending_deposit` 狀態會顯示「待付訂金」標籤
+- 橙色樣式區分於其他狀態
+- C端卡片會顯示「支付訂金」按鈕

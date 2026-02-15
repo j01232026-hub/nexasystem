@@ -115,7 +115,8 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
       'completed': '已完成',
       'cancelled': '已取消',
       'no_show': 'NoShow',
-      'blocked': '鎖定/休息'
+      'blocked': '鎖定/休息',
+      'pending_deposit': '待付訂金'
     };
     return map[status] || status;
   };
@@ -128,7 +129,8 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
       'completed': 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
       'cancelled': 'bg-slate-50 text-slate-500 ring-1 ring-slate-200 line-through',
       'no_show': 'bg-red-50 text-red-600 ring-1 ring-red-200',
-      'blocked': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+      'blocked': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+      'pending_deposit': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200'
     };
     return map[status] || 'bg-gray-50 text-gray-600';
   };
@@ -141,7 +143,8 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
       'completed': <CheckCircle weight="fill" size={12} />,
       'cancelled': <XCircle weight="fill" size={12} />,
       'no_show': <UserMinus weight="fill" size={12} />,
-      'blocked': <Lock weight="fill" size={12} />
+      'blocked': <Lock weight="fill" size={12} />,
+      'pending_deposit': <Warning weight="fill" size={12} />
     };
     return map[status] || null;
   };
