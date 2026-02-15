@@ -14,7 +14,7 @@ END $$;
 -- Add the new constraint
 ALTER TABLE appointments 
 ADD CONSTRAINT appointments_status_check 
-CHECK (status IN ('booked', 'confirmed', 'cancelled', 'noshow', 'completed', 'blocked'));
+CHECK (status IN ('booked', 'confirmed', 'cancelled', 'noshow', 'completed', 'blocked', 'pending_deposit'));
 
 -- 2. Create function to auto-confirm appointments
 CREATE OR REPLACE FUNCTION auto_confirm_appointments()
@@ -39,4 +39,4 @@ $$;
 -- For now, we just define the function. The frontend can call it via rpc('auto_confirm_appointments') on admin page load.
 
 -- 4. Comment on columns for clarity
-COMMENT ON COLUMN appointments.status IS 'Status: booked, confirmed, cancelled, noshow, completed, blocked';
+COMMENT ON COLUMN appointments.status IS 'Status: booked, confirmed, cancelled, noshow, completed, blocked, pending_deposit';

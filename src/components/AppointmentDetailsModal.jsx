@@ -114,7 +114,8 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
       'completed': '已完成',
       'cancelled': '已取消',
       'noshow': 'NoShow',
-      'blocked': '時段鎖定'
+      'blocked': '時段鎖定',
+      'pending_deposit': '待付訂金'
     };
     return map[status] || status;
   };
@@ -126,7 +127,8 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
       'completed': 'bg-purple-50 text-purple-600 ring-1 ring-purple-100',
       'cancelled': 'bg-slate-50 text-slate-500 ring-1 ring-slate-200 decoration-slice line-through',
       'noshow': 'bg-red-50 text-red-600 ring-1 ring-red-100',
-      'blocked': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+      'blocked': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+      'pending_deposit': 'bg-orange-50 text-orange-600 ring-1 ring-orange-100'
     };
     return map[status] || 'bg-gray-50 text-gray-600';
   };

@@ -652,6 +652,9 @@ const CalendarPage = () => {
                             } else if (appt.status === 'blocked') {
                                 styleClass = 'bg-slate-100 border-slate-300 text-slate-600';
                                 dotClass = 'bg-slate-500';
+                            } else if (appt.status === 'pending_deposit') {
+                                styleClass = 'bg-orange-50 border-orange-200 text-orange-700';
+                                dotClass = 'bg-orange-500';
                             }
 
                             return (
