@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { format, addDays, startOfDay, endOfDay, isSameDay, parseISO, addMinutes, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, differenceInMinutes } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note, HourglassMedium, CalendarCheck, XCircle as XCircleIcon, UserMinus } from '@phosphor-icons/react';
 import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import NewAppointmentModal from '../components/NewAppointmentModal';
@@ -13,8 +13,34 @@ import DepositReviewModal from '../components/DepositReviewModal';
 // Constants
 const OPEN_HOUR = 10;
 const CLOSE_HOUR = 21;
-const SLOT_HEIGHT = 60; // 1 hour = 60px height
+const SLOT_HEIGHT = 60;
 const MINUTE_HEIGHT = SLOT_HEIGHT / 60;
+
+const getStatusLabel = (status) => {
+  const map = {
+    'pending': '已預約',
+    'scheduled': '已預約',
+    'confirmed': '已確認',
+    'completed': '已完成',
+    'cancelled': '已取消',
+    'no_show': 'NoShow',
+    'blocked': '鎖定'
+  };
+  return map[status] || status;
+};
+
+const getStatusTagStyle = (status) => {
+  const map = {
+    'pending': 'bg-amber-500/90 text-white',
+    'scheduled': 'bg-amber-500/90 text-white',
+    'confirmed': 'bg-indigo-500/90 text-white',
+    'completed': 'bg-emerald-500/90 text-white',
+    'cancelled': 'bg-slate-400/90 text-white',
+    'no_show': 'bg-red-500/90 text-white',
+    'blocked': 'bg-slate-500/90 text-white'
+  };
+  return map[status] || 'bg-gray-500/90 text-white';
+};
 
 // Helper to calculate layout for overlapping events
 const calculateLayout = (events) => {
@@ -501,9 +527,14 @@ const CalendarPage = () => {
                                       </div>
                                    </div>
                                  ) : (
-                                   <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
-                                      <div className="font-bold text-sm text-slate-900 leading-tight truncate">
-                                         {appt.customers?.name || '未知客'}
+                                   <div className="flex flex-col h-full justify-between px-2 py-1 overflow-hidden">
+                                      <div className="flex items-start justify-between gap-1">
+                                        <div className="font-bold text-sm text-slate-900 leading-tight truncate flex-1">
+                                           {appt.customers?.name || '未知客'}
+                                        </div>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${getStatusTagStyle(appt.status)}`}>
+                                           {getStatusLabel(appt.status)}
+                                        </span>
                                       </div>
                                       <div className="text-xs opacity-90 truncate mt-0.5">
                                          {appt.services?.name}
@@ -574,10 +605,15 @@ const CalendarPage = () => {
                                </div>
                             ) : (
                               <>
-                                <div className="font-semibold truncate flex items-center gap-1 text-[10px]">
-                                 <div className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></div>
-                                 <span className="truncate">{appt.customers?.name}</span>
-                               </div>
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="font-semibold truncate flex items-center gap-1 text-[10px] flex-1">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></div>
+                                   <span className="truncate">{appt.customers?.name}</span>
+                                  </div>
+                                  <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${getStatusTagStyle(appt.status)}`}>
+                                     {getStatusLabel(appt.status)}
+                                  </span>
+                                </div>
                                <div className="text-[10px] opacity-80 truncate leading-tight hidden md:block">
                                   {appt.services?.name}
                                </div>
@@ -637,6 +673,14 @@ const CalendarPage = () => {
                               className={`text-[10px] border rounded px-1 py-0.5 truncate shadow-sm flex items-center gap-1 cursor-pointer hover:brightness-95
                                 ${appt.status === 'blocked' 
                                   ? 'bg-slate-100 border-slate-300 text-slate-600' 
+                                  : appt.status === 'cancelled'
+                                  ? 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                                  : appt.status === 'no_show'
+                                  ? 'bg-red-50 border-red-200 text-red-600'
+                                  : appt.status === 'completed'
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                  : appt.status === 'pending'
+                                  ? 'bg-amber-50 border-amber-200 text-amber-600'
                                   : 'bg-indigo-50 border-indigo-200 text-indigo-700'}
                               `}
                               onClick={(e) => {
@@ -645,12 +689,17 @@ const CalendarPage = () => {
                               }}
                             >
                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 
-                                 ${appt.status === 'blocked' ? 'bg-slate-500' : 'bg-indigo-500'
-                                 }`}></div>
+                                 ${appt.status === 'blocked' ? 'bg-slate-500' 
+                                   : appt.status === 'cancelled' ? 'bg-slate-400'
+                                   : appt.status === 'no_show' ? 'bg-red-500'
+                                   : appt.status === 'completed' ? 'bg-emerald-500'
+                                   : appt.status === 'pending' ? 'bg-amber-500'
+                                   : 'bg-indigo-500'}
+                               `}></div>
                                <span className="font-mono font-bold text-[10px] leading-none opacity-90">
                                  {format(parseISO(appt.start_time), 'HH:mm')}
                                </span>
-                               <span className="truncate">
+                               <span className="truncate flex-1">
                                  {appt.status === 'blocked' ? (appt.notes?.split(' - ')[0] || '鎖定') : appt.customers?.name}
                                </span>
                             </div>

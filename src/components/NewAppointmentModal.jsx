@@ -351,11 +351,11 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess, initialDate, initialS
         payload = {
           tenant_id: profile.tenant_id,
           customer_id: finalCustomerId,
-          service_id: selectedServices[0].id, // Primary service
+          service_id: selectedServices[0].id,
           staff_id: formData.staff_id,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          status: 'confirmed',
+          status: 'pending',
           notes: formData.notes
         };
 

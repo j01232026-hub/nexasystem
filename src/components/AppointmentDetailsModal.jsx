@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
-import { X, User, Calendar, Clock, Receipt, Note, Pencil, Trash, Lock, CheckCircle, Warning, Phone, Tag, Prohibit } from '@phosphor-icons/react';
+import { X, User, Calendar, Clock, Receipt, Note, Pencil, Trash, Lock, CheckCircle, Warning, Phone, Tag, Prohibit, HourglassMedium, CalendarCheck, XCircle, UserMinus } from '@phosphor-icons/react';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 
@@ -109,11 +109,12 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
 
   const getStatusLabel = (status) => {
     const map = {
-      'scheduled': '已排程',
+      'pending': '已預約',
+      'scheduled': '已預約',
       'confirmed': '已確認',
       'completed': '已完成',
       'cancelled': '已取消',
-      'no_show': '未出席',
+      'no_show': 'NoShow',
       'blocked': '鎖定/休息'
     };
     return map[status] || status;
@@ -121,14 +122,28 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
 
   const getStatusColor = (status) => {
     const map = {
-      'scheduled': 'bg-blue-50 text-blue-600 ring-1 ring-blue-100',
-      'confirmed': 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100',
-      'completed': 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
-      'cancelled': 'bg-slate-50 text-slate-500 ring-1 ring-slate-200 decoration-slice line-through',
-      'no_show': 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
+      'pending': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      'scheduled': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      'confirmed': 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
+      'completed': 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      'cancelled': 'bg-slate-50 text-slate-500 ring-1 ring-slate-200 line-through',
+      'no_show': 'bg-red-50 text-red-600 ring-1 ring-red-200',
       'blocked': 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
     };
     return map[status] || 'bg-gray-50 text-gray-600';
+  };
+
+  const getStatusIcon = (status) => {
+    const map = {
+      'pending': <HourglassMedium weight="fill" size={12} />,
+      'scheduled': <HourglassMedium weight="fill" size={12} />,
+      'confirmed': <CalendarCheck weight="fill" size={12} />,
+      'completed': <CheckCircle weight="fill" size={12} />,
+      'cancelled': <XCircle weight="fill" size={12} />,
+      'no_show': <UserMinus weight="fill" size={12} />,
+      'blocked': <Lock weight="fill" size={12} />
+    };
+    return map[status] || null;
   };
 
   if (!isOpen) return null;
@@ -200,13 +215,21 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
               {/* Status Banner */}
               <div className="flex justify-between items-center">
                  <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${getStatusColor(details.status)}`}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></div>
+                    {getStatusIcon(details.status)}
                     {getStatusLabel(details.status)}
                  </span>
                  <span className="text-xs text-slate-400 font-medium">
                     {format(parseISO(details.created_at), 'yyyy/MM/dd HH:mm')} 建立
                  </span>
               </div>
+              
+              {/* Confirmed At Info */}
+              {details.confirmed_at && (
+                <div className="text-xs text-indigo-500 font-medium flex items-center gap-1.5 -mt-4 ml-1">
+                  <CalendarCheck size={12} weight="fill" />
+                  {format(parseISO(details.confirmed_at), 'yyyy/MM/dd HH:mm')} 確認
+                </div>
+              )}
 
               {/* Main Info Card */}
               <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-4">
@@ -331,28 +354,65 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
         </div>
 
         {/* Footer Actions - Fixed at Bottom */}
-        {details && (
+        {details && !isBlocked && (
           <div className="bg-white p-4 border-t border-slate-50 flex flex-col gap-3 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
+             {/* Status Action Buttons */}
+             <div className="flex gap-2 flex-wrap">
+               {/* Confirm Button (pending -> confirmed) */}
+               {details.status === 'pending' && (
+                  <button 
+                    onClick={() => handleStatusChange('confirmed')}
+                    className="flex-1 min-w-[100px] bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <CalendarCheck size={16} weight="bold" />
+                    確認預約
+                  </button>
+               )}
+               
+               {/* Cancel Button (pending/confirmed -> cancelled) */}
+               {(details.status === 'pending' || details.status === 'confirmed') && (
+                  <button 
+                    onClick={() => handleStatusChange('cancelled')}
+                    className="flex-1 min-w-[100px] bg-slate-500 hover:bg-slate-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <XCircle size={16} weight="bold" />
+                    取消預約
+                  </button>
+               )}
+               
+               {/* NoShow Button (confirmed -> no_show) */}
+               {details.status === 'confirmed' && (
+                  <button 
+                    onClick={() => handleStatusChange('no_show')}
+                    className="flex-1 min-w-[100px] bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <UserMinus size={16} weight="bold" />
+                    NoShow
+                  </button>
+               )}
+               
+               {/* Complete Button (confirmed -> completed) */}
+               {details.status === 'confirmed' && (
+                  <button 
+                    onClick={() => handleStatusChange('completed')}
+                    className="flex-1 min-w-[100px] bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle size={16} weight="bold" />
+                    完成服務
+                  </button>
+               )}
+             </div>
+             
+             {/* Secondary Actions */}
              <div className="flex gap-3">
                {/* Edit Button */}
-               {onEdit && details.status !== 'cancelled' && details.status !== 'completed' && (
+               {onEdit && details.status !== 'cancelled' && details.status !== 'completed' && details.status !== 'no_show' && (
                   <button 
                     onClick={() => onEdit(details, items)}
                     className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2"
                   >
                     <Pencil size={18} weight="bold" />
                     編輯預約
-                  </button>
-               )}
-               
-               {/* Complete Button */}
-               {details.status === 'confirmed' && (
-                  <button 
-                    onClick={() => handleStatusChange('completed')}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle size={18} weight="bold" />
-                    完成服務
                   </button>
                )}
 
