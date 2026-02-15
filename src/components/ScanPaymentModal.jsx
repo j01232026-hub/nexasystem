@@ -24,7 +24,6 @@ const ScanPaymentModal = ({ isOpen, onClose, tenantId, operatorId, onSuccess }) 
       setAmount('');
       setError(null);
       setSuccess(null);
-      setCustomerInfo(null);
       setSuccessMessage(null); // Reset success message
       stopCamera();
     }
