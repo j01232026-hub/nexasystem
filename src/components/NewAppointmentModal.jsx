@@ -459,6 +459,30 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess, initialDate, initialS
     ? staffList.filter(s => selectedServiceIds.every(sid => s.staff_services.some(ss => ss.service_id === sid)))
     : staffList;
 
+  const handleTimeBlur = (field, value) => {
+    if (!value) return;
+    const [h, m] = value.split(':').map(Number);
+    let newM = Math.round(m / 30) * 30;
+    let newH = h;
+    
+    if (newM === 60) {
+      newM = 0;
+      newH = (newH + 1) % 24;
+    }
+    
+    const formatted = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+    
+    if (field === 'time') {
+        setFormData(prev => ({ ...prev, time: formatted }));
+    } else if (field === 'endTime') {
+        if (appointmentType === 'booking') {
+            setFormData(prev => ({ ...prev, endTime: formatted }));
+        } else {
+            setBlockEndTime(formatted);
+        }
+    }
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/20 backdrop-blur-sm transition-all duration-300">
       <div className={`
@@ -825,8 +849,8 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess, initialDate, initialS
                    </div>
                    {!isAllDay && (
                       <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-                         <input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
-                         <input type="time" value={blockEndTime} onChange={e => setBlockEndTime(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                         <input type="time" step="1800" onBlur={(e) => handleTimeBlur('time', e.target.value)} value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                         <input type="time" step="1800" onBlur={(e) => handleTimeBlur('endTime', e.target.value)} value={blockEndTime} onChange={e => setBlockEndTime(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                       </div>
                    )}
                 </div>
@@ -855,6 +879,8 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess, initialDate, initialS
                   </label>
                   <input
                     type="time"
+                    step="1800"
+                    onBlur={(e) => handleTimeBlur('time', e.target.value)}
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({...formData, time: e.target.value})}
@@ -870,6 +896,8 @@ const NewAppointmentModal = ({ isOpen, onClose, onSuccess, initialDate, initialS
                     </label>
                     <input
                       type="time"
+                      step="1800"
+                      onBlur={(e) => handleTimeBlur('endTime', e.target.value)}
                       required
                       value={appointmentType === 'booking' ? formData.endTime : blockEndTime}
                       onChange={(e) => appointmentType === 'booking' ? setFormData({...formData, endTime: e.target.value}) : setBlockEndTime(e.target.value)}
