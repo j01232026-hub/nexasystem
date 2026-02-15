@@ -159,27 +159,27 @@ const LiffBookingPage = () => {
         // Calculate blocked slots
         const bookedSlots = new Set();
         
-        // Helper: Get 30-min slots from time range
-        const getSlots = (startStr, endStr) => {
-             const s = new Date(startStr);
-             const e = new Date(endStr);
-             const slots = [];
-             let curr = new Date(s);
-             // Safety: limit while loop to prevent infinite loops if end <= start
-             let count = 0;
-             while (curr < e && count < 48) {
-                 slots.push(format(curr, 'HH:mm'));
-                 curr = addMinutes(curr, 30);
-                 count++;
-             }
-             return slots;
+        // Helper: Check if a slot overlaps with an appointment
+        const checkOverlap = (slotTime, apptStart, apptEnd) => {
+            const [h, m] = slotTime.split(':').map(Number);
+            const slotStart = new Date(selectedDate);
+            slotStart.setHours(h, m, 0, 0);
+            const slotEnd = addMinutes(slotStart, 30);
+            
+            const start = new Date(apptStart);
+            const end = new Date(apptEnd);
+            
+            return start < slotEnd && end > slotStart;
         };
 
         if (selectedStaff.id !== 'any') {
-            // Specific Staff: Block their slots
+            // Specific Staff: Block overlapping slots
             appts.forEach(appt => {
-                const slots = getSlots(appt.start_time, appt.end_time);
-                slots.forEach(slot => bookedSlots.add(slot));
+                allTimeSlots.forEach(slot => {
+                    if (checkOverlap(slot, appt.start_time, appt.end_time)) {
+                        bookedSlots.add(slot);
+                    }
+                });
             });
         } else {
             // "Any" Staff: Block slot only if ALL active staff are booked
@@ -188,10 +188,11 @@ const LiffBookingPage = () => {
                 const slotCounts = {}; // slot -> Set of staff_ids
                 
                 appts.forEach(appt => {
-                    const slots = getSlots(appt.start_time, appt.end_time);
-                    slots.forEach(slot => {
-                        if (!slotCounts[slot]) slotCounts[slot] = new Set();
-                        slotCounts[slot].add(appt.staff_id);
+                    allTimeSlots.forEach(slot => {
+                        if (checkOverlap(slot, appt.start_time, appt.end_time)) {
+                            if (!slotCounts[slot]) slotCounts[slot] = new Set();
+                            slotCounts[slot].add(appt.staff_id);
+                        }
                     });
                 });
 
