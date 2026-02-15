@@ -170,6 +170,19 @@ async function main() {
 
   // 6. Verify Token Consumption (Should fail if reused)
   console.log('\n6. Verifying Replay Protection...');
+  const { error: replayProtectionError } = await supabase.rpc('consume_payment_token', {
+    p_token_hash: tokenHash,
+    p_amount: 50,
+    p_operator_id: operatorId
+  });
+
+  if (replayProtectionError) {
+    console.log('Replay protection PASSED. Error received as expected:', replayProtectionError.message);
+  } else {
+    console.error('Replay protection FAILED! Token was reused.');
+  }
+
+  console.log('\n6. Verifying Replay Protection...');
   const { error: replayError } = await supabase.rpc('consume_payment_token', {
     p_token_hash: tokenHash,
     p_amount: 50,
@@ -180,6 +193,91 @@ async function main() {
     console.log('Replay protection PASSED. Error received as expected:', replayError.message);
   } else {
     console.error('Replay protection FAILED! Token was reused.');
+    throw new Error('Replay protection FAILED!');
+  }
+
+  // 7. Verify Top-up Idempotency
+  console.log('\n7. Verifying Top-up Idempotency...');
+  const idempotencyTopupAmount = 500;
+  
+  // Create a new pending top-up order
+  const { data: pendingOrder, error: createOrderError } = await supabase
+    .from('topup_orders')
+    .insert({
+      user_id: userId,
+      tenant_id: tenantId,
+      amount: idempotencyTopupAmount,
+      payment_method: 'cash',
+      operator_id: operatorId,
+      status: 'pending'
+    })
+    .select()
+    .single();
+
+  if (createOrderError) throw createOrderError;
+  console.log(`Created pending top-up order: ${pendingOrder.id}`);
+
+  // Get initial balance before idempotent top-up
+  const { data: initialWalletBeforeIdempotentTopup } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
+  const initialBalanceIdempotent = parseFloat(initialWalletBeforeIdempotentTopup.balance);
+  console.log(`Initial balance before idempotent top-up: $${initialBalanceIdempotent}`);
+
+  // Attempt to confirm the order multiple times
+  console.log('Attempting to confirm the order multiple times...');
+  const confirmPromises = [];
+  const confirmAttempt = async (order, attemptNum) => {
+    try {
+      const { data, error } = await supabase.rpc('process_fund_change', {
+        p_user_id: order.user_id,
+        p_tenant_id: order.tenant_id,
+        p_amount: order.amount,
+        p_type: 'TOPUP_CASH',
+        p_related_order_id: order.id, // Crucial for idempotency
+        p_description: `Idempotent Test Topup ${attemptNum}`,
+        p_operator_id: operatorId
+      });
+      if (error) return { error };
+      return { data };
+    } catch (err) {
+      return { error: err };
+    }
+  };
+
+  for (let i = 0; i < 3; i++) { // Simulate 3 attempts
+    confirmPromises.push(confirmAttempt(pendingOrder, i + 1));
+  }
+
+  const confirmResults = await Promise.all(confirmPromises);
+  console.log('Confirmation attempts completed.');
+
+  // Verify final balance
+  const { data: finalWalletAfterIdempotentTopup } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
+  const finalBalanceIdempotent = parseFloat(finalWalletAfterIdempotentTopup.balance);
+  console.log(`Final balance after idempotent top-up attempts: $${finalBalanceIdempotent}`);
+
+  // Expected balance: initialBalanceIdempotent + idempotencyTopupAmount
+  const expectedFinalBalanceIdempotent = initialBalanceIdempotent + idempotencyTopupAmount;
+
+  if (finalBalanceIdempotent === expectedFinalBalanceIdempotent) {
+    console.log('Idempotency Test PASSED. Balance is as expected.');
+  } else {
+    console.error(`Idempotency Test FAILED! Expected balance: $${expectedFinalBalanceIdempotent}, Actual: $${finalBalanceIdempotent}`);
+    throw new Error('Idempotency Test Failed');
+  }
+
+  // Verify only one transaction ledger entry for this order
+  const { data: ledgerEntries, error: ledgerError } = await supabase
+    .from('transaction_ledger')
+    .select('*')
+    .eq('related_order_id', pendingOrder.id);
+
+  if (ledgerError) throw ledgerError;
+
+  if (ledgerEntries.length === 1) {
+    console.log('Idempotency Test PASSED. Only one ledger entry found for the idempotent top-up order.');
+  } else {
+    console.error(`Idempotency Test FAILED! Expected 1 ledger entry, found ${ledgerEntries.length}`);
+    throw new Error('Idempotency Test Failed: Multiple ledger entries');
   }
 
   console.log('\n=== Test Completed Successfully ===');

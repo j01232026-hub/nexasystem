@@ -112,6 +112,16 @@ DECLARE
     v_version INTEGER;
     v_rows_affected INTEGER;
 BEGIN
+    -- Idempotency check: If a transaction with this related_order_id and type already exists, return current balance.
+    IF p_related_order_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM transaction_ledger
+        WHERE related_order_id = p_related_order_id AND type = p_type
+    ) THEN
+        -- Return current balance without making any changes
+        SELECT balance INTO v_current_balance FROM wallets WHERE user_id = p_user_id;
+        RETURN v_current_balance;
+    END IF;
+
     -- Lock wallet row for update
     SELECT balance, version INTO v_current_balance, v_version
     FROM wallets
