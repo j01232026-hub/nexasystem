@@ -439,3 +439,52 @@ feat: 新增預約狀態標籤功能
 - 620 insertions(+)
 - 36 deletions(-)
 - 2 new files created
+
+---
+
+### Step 6: 修復數據庫遷移錯誤
+
+**日期**: 2026-02-15
+
+**問題**: 執行遷移腳本時報錯
+```
+Error: Failed to run sql query: ERROR: 23514: check constraint "appointments_status_check" of relation "appointments" is violated by some row
+```
+
+**原因**: 執行順序錯誤 - 在數據更新前就添加了新的約束，導致現有數據不符合新約束。
+
+**修正**: 調整執行順序，**先更新數據，再添加約束**
+
+#### 6.1 修正後的執行順序
+
+```sql
+-- Step 1: 新增欄位
+ALTER TABLE public.appointments 
+ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ;
+
+-- Step 2: 刪除舊約束
+ALTER TABLE public.appointments 
+DROP CONSTRAINT IF EXISTS appointments_status_check;
+
+-- Step 3: 更新數據（在添加新約束之前）
+UPDATE public.appointments 
+SET status = 'pending' 
+WHERE status = 'scheduled';
+
+-- 處理任何非預期的狀態值
+UPDATE public.appointments 
+SET status = 'pending' 
+WHERE status NOT IN ('pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'blocked');
+
+-- Step 4: 添加新約束（數據已更新完成）
+ALTER TABLE public.appointments 
+ADD CONSTRAINT appointments_status_check 
+CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'blocked'));
+```
+
+#### 6.2 關鍵修正點
+
+| 原本 | 修正後 |
+|------|--------|
+| 先添加約束，後更新數據 | 先更新數據，後添加約束 |
+| 無處理未知狀態值 | 新增處理未知狀態值的邏輯 |
