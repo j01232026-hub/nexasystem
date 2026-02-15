@@ -15,7 +15,10 @@ import {
   Repeat, 
   Star,
   CalendarX,
-  CheckCircle
+  CheckCircle,
+  CurrencyDollar,
+  Bank,
+  WarningCircle
 } from '@phosphor-icons/react';
 
 const LiffRecordsPage = () => {
@@ -26,12 +29,24 @@ const LiffRecordsPage = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState({ upcoming: [], history: [] });
   const [loading, setLoading] = useState(true);
+  const [depositConfig, setDepositConfig] = useState(null);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [depositAppt, setDepositAppt] = useState(null);
+  const [reportMethod, setReportMethod] = useState('transfer');
+  const [reportLastFive, setReportLastFive] = useState('');
+  const [reportSubmitted, setReportSubmitted] = useState(false);
 
   useEffect(() => {
     if (liffUser?.dbId) {
       fetchAppointments();
     }
   }, [liffUser]);
+  
+  useEffect(() => {
+    if (tenantId) {
+      fetchTenantSettings();
+    }
+  }, [tenantId]);
 
   const fetchAppointments = async () => {
     try {
@@ -66,6 +81,18 @@ const LiffRecordsPage = () => {
       setLoading(false);
     }
   };
+  
+  const fetchTenantSettings = async () => {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('deposit_config')
+      .eq('id', tenantId)
+      .single();
+    
+    if (!error && data?.deposit_config) {
+      setDepositConfig(data.deposit_config);
+    }
+  };
 
   const handleCancel = async (apptId) => {
     if (!window.confirm('確定要取消此預約嗎？')) return;
@@ -85,6 +112,57 @@ const LiffRecordsPage = () => {
 
   const handleRebook = () => {
     navigate(`/liff/${tenantId}/booking/new`);
+  };
+  
+  const handleOpenDeposit = (appt) => {
+    setDepositAppt(appt);
+    setDepositModalOpen(true);
+    setReportMethod('transfer');
+    setReportLastFive('');
+    setReportSubmitted(false);
+  };
+  
+  const handleCloseDeposit = () => {
+    setDepositModalOpen(false);
+    setDepositAppt(null);
+    setReportMethod('transfer');
+    setReportLastFive('');
+    setReportSubmitted(false);
+  };
+  
+  const handleSubmitReport = async () => {
+    if (reportMethod === 'transfer' && reportLastFive.length < 5) return;
+    
+    try {
+      const { error } = await supabase
+        .from('deposit_reports')
+        .insert([
+          {
+            appointment_id: depositAppt.id,
+            user_id: liffUser.dbId,
+            tenant_id: depositAppt.tenant_id,
+            report_method: reportMethod,
+            transfer_last_5: reportMethod === 'transfer' ? reportLastFive : null,
+            status: 'pending_confirmation'
+          }
+        ]);
+      
+      if (error) throw error;
+      setReportSubmitted(true);
+    } catch (err) {
+      console.error('Error submitting report:', err);
+      alert('回報失敗，請稍後再試');
+    }
+  };
+  
+  const getDepositAmount = (appt) => {
+    if (!depositConfig) return 0;
+    if (depositConfig.mode === 'ratio') {
+      const price = appt?.services?.price || 0;
+      const ratio = Number(depositConfig.ratio) || 0;
+      return Math.round((price * ratio) / 100);
+    }
+    return Number(depositConfig.amount) || 0;
   };
 
   if (authLoading || loading) {
@@ -135,6 +213,7 @@ const LiffRecordsPage = () => {
                 appt={appt} 
                 themeColor={themeColor} 
                 onCancel={() => handleCancel(appt.id)}
+                onPayDeposit={() => handleOpenDeposit(appt)}
               />
             ))
           ) : (
@@ -165,11 +244,160 @@ const LiffRecordsPage = () => {
           )
         )}
       </div>
+      
+      {depositModalOpen && depositAppt && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-xl p-6 sm:p-7 pb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs font-bold text-orange-500">待付訂金</p>
+                <h3 className="text-lg font-bold text-gray-900">支付訂金資訊</h3>
+              </div>
+              <button
+                onClick={handleCloseDeposit}
+                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-colors"
+              >
+                <span className="text-lg">×</span>
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl border border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-orange-500">
+                    <CalendarCheck size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400">預約時間</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {format(parseISO(depositAppt.start_time), 'M月d日 (EEEE) HH:mm', { locale: zhTW })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 rounded-2xl border border-gray-100 bg-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                      <CurrencyDollar size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">訂金金額</p>
+                      <p className="text-lg font-bold text-gray-900">${getDepositAmount(depositAppt)}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full">
+                    {depositConfig?.mode === 'ratio' ? `${depositConfig?.ratio || 0}%` : '固定金額'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-4 rounded-2xl border border-gray-100 bg-white">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mt-0.5">
+                    <Bank size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400 mb-1">匯款資訊</p>
+                    <p className="text-sm font-semibold text-gray-800 whitespace-pre-line">
+                      {depositConfig?.bank_info || '請聯絡店家取得匯款資訊'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 rounded-2xl border border-orange-100 bg-orange-50">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-orange-500">
+                    <WarningCircle size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-orange-600 font-bold mb-1">提醒</p>
+                    <p className="text-xs text-orange-700 leading-relaxed">請於 24 小時內完成匯款，逾期將自動取消預約。</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 rounded-2xl border border-gray-100 bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs font-bold text-gray-900">我已完成匯款</p>
+                    <p className="text-xs text-gray-400">請選擇付款方式</p>
+                  </div>
+                  {reportSubmitted && (
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                      已送出
+                    </span>
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${reportMethod === 'transfer' ? 'border-orange-200 bg-orange-50' : 'border-gray-200 hover:border-orange-200 hover:bg-orange-50/40'}`}>
+                    <input
+                      type="radio"
+                      name="report_method"
+                      checked={reportMethod === 'transfer'}
+                      onChange={() => setReportMethod('transfer')}
+                      className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-200"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">匯款</p>
+                      <p className="text-xs text-gray-400">後五碼</p>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={reportLastFive}
+                      onChange={(e) => setReportLastFive(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                      disabled={reportMethod !== 'transfer'}
+                      placeholder="_____"
+                      className="w-24 text-center text-sm font-bold tracking-[0.2em] py-2 rounded-lg border border-gray-200 bg-white focus:border-orange-300 focus:ring-2 focus:ring-orange-100 outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                    />
+                  </label>
+                  
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${reportMethod === 'linepay' ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/40'}`}>
+                    <input
+                      type="radio"
+                      name="report_method"
+                      checked={reportMethod === 'linepay'}
+                      onChange={() => setReportMethod('linepay')}
+                      className="w-4 h-4 text-emerald-500 border-gray-300 focus:ring-emerald-200"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900">LINE PAY</p>
+                      <p className="text-xs text-gray-400">付款完成即可送出</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={handleSubmitReport}
+                disabled={reportSubmitted || (reportMethod === 'transfer' && reportLastFive.length < 5)}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-bold shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
+                style={{ backgroundColor: themeColor }}
+              >
+                我已完成匯款
+              </button>
+              <button
+                onClick={handleCloseDeposit}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition-colors"
+              >
+                關閉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const UpcomingCard = ({ appt, themeColor, onCancel }) => {
+const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
   const startDate = parseISO(appt.start_time);
   const isPendingDeposit = appt.status === 'pending_deposit';
   
@@ -205,7 +433,15 @@ const UpcomingCard = ({ appt, themeColor, onCancel }) => {
             <h3 className="font-bold text-gray-900">{appt.services?.name}</h3>
             <p className="text-xs text-gray-500 mt-0.5">服務人員：{appt.staff?.display_name || '不指定'}</p>
             {isPendingDeposit && (
-                <p className="text-xs text-orange-600 font-bold mt-1">請盡快聯繫店家完成匯款</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-orange-600 font-bold">請盡快聯繫店家完成匯款</p>
+                  <button
+                    onClick={onPayDeposit}
+                    className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-3 py-1 rounded-full hover:bg-orange-100 transition-colors"
+                  >
+                    支付訂金
+                  </button>
+                </div>
             )}
           </div>
         </div>
@@ -219,12 +455,22 @@ const UpcomingCard = ({ appt, themeColor, onCancel }) => {
         >
           取消預約
         </button>
-        <button 
-          className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: themeColor }}
-        >
-          聯絡店家
-        </button>
+        {isPendingDeposit ? (
+          <button 
+            onClick={onPayDeposit}
+            className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#f97316' }}
+          >
+            支付訂金
+          </button>
+        ) : (
+          <button 
+            className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: themeColor }}
+          >
+            聯絡店家
+          </button>
+        )}
       </div>
     </div>
   );

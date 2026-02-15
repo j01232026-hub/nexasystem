@@ -8,6 +8,7 @@ import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import NewAppointmentModal from '../components/NewAppointmentModal';
 import AppointmentDetailsModal from '../components/AppointmentDetailsModal';
+import DepositReviewModal from '../components/DepositReviewModal';
 
 // Constants
 const OPEN_HOUR = 10;
@@ -98,6 +99,8 @@ const CalendarPage = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [pendingDeposits, setPendingDeposits] = useState([]);
+  const [isDepositReviewOpen, setIsDepositReviewOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [isStaffSelectorOpen, setIsStaffSelectorOpen] = useState(false);
 
@@ -293,6 +296,18 @@ const CalendarPage = () => {
           預約行事曆
         </h1>
         
+        {/* Deposit Review Button */}
+        <button 
+          onClick={() => setIsDepositReviewOpen(true)}
+          className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors mr-2"
+          title="待確認訂金"
+        >
+          <CurrencyDollar size={24} weight="duotone" />
+          {pendingDeposits.length > 0 && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+          )}
+        </button>
+
         {/* Designer Selector */}
         <div className="relative group z-[60]">
           <button 
@@ -655,6 +670,16 @@ const CalendarPage = () => {
            setEditData({ appointment: details, items });
            setSelectedAppointmentId(null);
            setIsModalOpen(true);
+        }}
+      />
+      
+      <DepositReviewModal 
+        isOpen={isDepositReviewOpen} 
+        onClose={() => setIsDepositReviewOpen(false)}
+        pendingDeposits={pendingDeposits}
+        onRefresh={() => {
+          if (staff.length > 0) fetchPendingDeposits(staff[0].tenant_id);
+          else fetchData();
         }}
       />
     </div>
