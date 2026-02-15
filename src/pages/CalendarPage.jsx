@@ -3,12 +3,13 @@ import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { format, addDays, startOfDay, endOfDay, isSameDay, parseISO, addMinutes, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, differenceInMinutes } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note, CreditCard } from '@phosphor-icons/react';
 import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import NewAppointmentModal from '../components/NewAppointmentModal';
 import AppointmentDetailsModal from '../components/AppointmentDetailsModal';
 import DepositReviewModal from '../components/DepositReviewModal';
+import TopupModal from '../components/TopupModal';
 
 // Constants
 const OPEN_HOUR = 10;
@@ -103,6 +104,8 @@ const CalendarPage = () => {
   const [isDepositReviewOpen, setIsDepositReviewOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [isStaffSelectorOpen, setIsStaffSelectorOpen] = useState(false);
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false);
+  const [tenantId, setTenantId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -122,6 +125,7 @@ const CalendarPage = () => {
         .single();
 
       if (!profile) return;
+      setTenantId(profile.tenant_id);
 
       // 2. Fetch Staff (if not already loaded)
       let currentStaff = staff;
@@ -407,6 +411,14 @@ const CalendarPage = () => {
             月檢視
           </button>
         </div>
+
+        <button 
+          onClick={() => setIsTopupModalOpen(true)}
+          className="bg-white hover:bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm border border-rose-200 transition-all active:scale-95 whitespace-nowrap"
+        >
+          <CreditCard weight="bold" size={16} />
+          儲值
+        </button>
 
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -736,6 +748,18 @@ const CalendarPage = () => {
           else fetchData();
         }}
       />
+
+      {tenantId && (
+        <TopupModal
+          isOpen={isTopupModalOpen}
+          onClose={() => setIsTopupModalOpen(false)}
+          tenantId={tenantId}
+          operatorId={user?.id}
+          onSuccess={() => {
+            setIsTopupModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
