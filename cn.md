@@ -395,3 +395,47 @@ let status = 'pending';
 | `src/pages/CalendarPage.jsx` | 修改 | 行事曆狀態顯示 |
 | `src/components/NewAppointmentModal.jsx` | 修改 | 預設狀態改為 pending |
 | `src/pages/liff/LiffBookingPage.jsx` | 修改 | 預設狀態改為 pending |
+
+---
+
+### Step 5: 部署到 GitHub
+
+**日期**: 2026-02-15
+
+**倉庫**: `https://github.com/j01232026-hub/nexasystem.git`
+
+#### 5.1 Git 操作
+
+```bash
+# 查看狀態
+git status
+
+# 添加所有變更
+git add .
+
+# 提交變更
+git commit -m "feat: 新增預約狀態標籤功能"
+
+# 推送到 GitHub
+git push origin main
+```
+
+#### 5.2 提交資訊
+
+```
+commit 22a2c97
+feat: 新增預約狀態標籤功能
+
+- 新增數據庫遷移：confirmed_at 欄位、自動確認函數、狀態回退保護
+- 更新 AppointmentDetailsModal：狀態標籤顯示與變更按鈕
+- 更新 CalendarPage：日/週/月檢視狀態標籤顯示
+- 預約創建預設狀態改為 pending
+- 新增 cn.md 開發變更日誌
+```
+
+#### 5.3 變更統計
+
+- 6 files changed
+- 620 insertions(+)
+- 36 deletions(-)
+- 2 new files created
