@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { walletService } from '../../lib/walletService';
 import { format, parseISO, isPast, isFuture, compareDesc, compareAsc } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   CalendarCheck, 
   Clock, 
@@ -18,7 +20,11 @@ import {
   CheckCircle,
   CurrencyDollar,
   Bank,
-  WarningCircle
+  WarningCircle,
+  QrCode,
+  Timer,
+  Wallet,
+  ArrowClockwise
 } from '@phosphor-icons/react';
 
 const LiffRecordsPage = () => {
@@ -35,10 +41,34 @@ const LiffRecordsPage = () => {
   const [reportMethod, setReportMethod] = useState('transfer');
   const [reportLastFive, setReportLastFive] = useState('');
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrToken, setQrToken] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(60);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const countdownRef = useRef(null);
 
   useEffect(() => {
     if (liffUser?.dbId) {
       fetchAppointments();
+      fetchWalletBalance(); // Fetch balance on initial load
+
+      // Setup Realtime subscription for wallet changes
+      const channel = supabase
+        .channel(`wallet_changes:${liffUser.dbId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'transaction_ledger', filter: `user_id=eq.${liffUser.dbId}` },
+          (payload) => {
+            console.log('Realtime wallet change received!', payload);
+            fetchWalletBalance(); // Re-fetch balance when a new transaction occurs
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [liffUser]);
   
@@ -165,6 +195,72 @@ const LiffRecordsPage = () => {
     return Number(depositConfig.amount) || 0;
   };
 
+  const fetchWalletBalance = async () => {
+    if (!liffUser?.dbId) return;
+    try {
+      await walletService.initializeWallet(liffUser.dbId);
+      const walletInfo = await walletService.getCustomerWalletInfo(liffUser.dbId);
+      setWalletBalance(walletInfo.balance);
+      // Optional: Add a visual feedback for balance update
+      // For example, a temporary highlight or animation on the balance display
+    } catch (err) {
+      console.error('Error fetching wallet:', err);
+    }
+  };
+
+  const generatePaymentToken = useCallback(async () => {
+    if (!liffUser?.dbId || !tenantId) return;
+    
+    setQrLoading(true);
+    try {
+      await walletService.initializeWallet(liffUser.dbId);
+      const tokenData = await walletService.createPaymentToken(liffUser.dbId, tenantId);
+      setQrToken(tokenData);
+      setQrCountdown(60);
+      
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+      
+      countdownRef.current = setInterval(() => {
+        setQrCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Error generating payment token:', err);
+    } finally {
+      setQrLoading(false);
+    }
+  }, [liffUser?.dbId, tenantId]);
+
+  const handleOpenQrModal = async () => {
+    setQrModalOpen(true);
+    await fetchWalletBalance();
+    await generatePaymentToken();
+  };
+
+  const handleCloseQrModal = () => {
+    setQrModalOpen(false);
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    setQrToken(null);
+    setQrCountdown(60);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, []);
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -214,6 +310,7 @@ const LiffRecordsPage = () => {
                 themeColor={themeColor} 
                 onCancel={() => handleCancel(appt.id)}
                 onPayDeposit={() => handleOpenDeposit(appt)}
+                onOpenQr={handleOpenQrModal}
               />
             ))
           ) : (
@@ -393,11 +490,110 @@ const LiffRecordsPage = () => {
           </div>
         </div>
       )}
+      
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4 pb-0">
+          <div className="w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-xl p-6 sm:p-7 pb-safe max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-xs font-bold text-emerald-500">NEXA 付款碼</p>
+                <h3 className="text-lg font-bold text-gray-900">出示給店家掃描</h3>
+              </div>
+              <button
+                onClick={handleCloseQrModal}
+                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-colors"
+              >
+                <span className="text-lg">×</span>
+              </button>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <div className="w-full p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet size={18} className="text-emerald-600" />
+                    <span className="text-sm font-medium text-gray-600">儲值金餘額</span>
+                  </div>
+                  <span className="text-xl font-bold text-emerald-600">${walletBalance.toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <div className="relative mb-4">
+                {qrLoading ? (
+                  <div className="w-56 h-56 flex items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500"></div>
+                  </div>
+                ) : qrToken ? (
+                  <div className="p-4 bg-white rounded-2xl shadow-lg border border-gray-100">
+                    <QRCodeSVG 
+                      value={qrToken.tokenRaw}
+                      size={200}
+                      level="H"
+                      includeMargin={false}
+                      bgColor="#ffffff"
+                      fgColor="#1a1a1a"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-56 h-56 flex items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                    <p className="text-gray-400 text-sm">無法生成付款碼</p>
+                  </div>
+                )}
+                
+                {qrToken && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                      qrCountdown > 30 
+                        ? 'bg-emerald-100 text-emerald-700' 
+                        : qrCountdown > 10 
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700 animate-pulse'
+                    }`}>
+                      <Timer size={14} weight="bold" />
+                      <span>{qrCountdown} 秒後刷新</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {qrCountdown === 0 && qrToken && (
+                <button
+                  onClick={generatePaymentToken}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-600 transition-colors"
+                >
+                  <ArrowClockwise size={16} />
+                  重新產生付款碼
+                </button>
+              )}
+              
+              {qrCountdown > 0 && (
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  付款碼將自動更新，請在時效內提供店家掃描
+                </p>
+              )}
+            </div>
+            
+            <div className="mt-6 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                  <QrCode size={16} weight="bold" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-700 mb-1">使用說明</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    將此付款碼出示給店家掃描，即可使用儲值金支付服務費用。付款碼每 60 秒自動更新一次，確保交易安全。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
+const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) => {
   const startDate = parseISO(appt.start_time);
   const isPendingDeposit = appt.status === 'pending_deposit';
   
@@ -428,7 +624,13 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
           </div>
         </div>
         
-        {/* Actions Menu (Simplified as cancel button for now) */}
+        <button
+          onClick={onOpenQr}
+          className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 flex items-center justify-center text-emerald-600 hover:shadow-lg hover:scale-105 transition-all group/btn"
+          title="出示付款碼"
+        >
+          <QrCode size={22} weight="bold" className="group-hover/btn:scale-110 transition-transform" />
+        </button>
       </div>
 
       <div className="pl-2 space-y-3 mb-5">
