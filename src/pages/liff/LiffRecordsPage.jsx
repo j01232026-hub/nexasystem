@@ -66,12 +66,12 @@ const LiffRecordsPage = () => {
       const now = new Date();
       const upcoming = data.filter(appt => 
         isFuture(parseISO(appt.start_time)) && 
-        ['pending', 'confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
+        ['booked', 'confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
       ).sort((a, b) => compareAsc(parseISO(a.start_time), parseISO(b.start_time)));
 
       const history = data.filter(appt => 
         isPast(parseISO(appt.start_time)) || 
-        ['completed', 'cancelled', 'no_show'].includes(appt.status)
+        ['completed', 'cancelled', 'noshow', 'no_show'].includes(appt.status)
       ).sort((a, b) => compareDesc(parseISO(a.start_time), parseISO(b.start_time)));
 
       setAppointments({ upcoming, history });
@@ -401,18 +401,6 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
   const startDate = parseISO(appt.start_time);
   const isPendingDeposit = appt.status === 'pending_deposit';
   
-  const getStatusLabel = (status) => {
-    const map = {
-      'pending': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
-      'confirmed': { text: '已確認', color: 'bg-indigo-100 text-indigo-700' },
-      'scheduled': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
-      'pending_deposit': { text: '待付訂金', color: 'bg-orange-100 text-orange-700' }
-    };
-    return map[status] || { text: status, color: 'bg-gray-100 text-gray-600' };
-  };
-  
-  const statusInfo = getStatusLabel(appt.status);
-  
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
       {/* Left Accent Bar */}
@@ -424,8 +412,15 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
             <span className="text-sm font-bold text-gray-900">
               {format(startDate, 'M月d日 (EEEE)', { locale: zhTW })}
             </span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusInfo.color}`}>
-              {statusInfo.text}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              isPendingDeposit ? 'bg-orange-100 text-orange-700' : 
+              appt.status === 'booked' ? 'bg-blue-100 text-blue-700' :
+              appt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {isPendingDeposit ? '待付訂金' : 
+               appt.status === 'booked' ? '已預約' :
+               appt.status === 'confirmed' ? '已確認' : '即將到來'}
             </span>
           </div>
           <div className="text-2xl font-bold text-gray-900 font-mono">
@@ -490,19 +485,8 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit }) => {
 
 const HistoryCard = ({ appt, themeColor, onRebook }) => {
   const startDate = parseISO(appt.start_time);
-  
-  const getStatusLabel = (status) => {
-    const map = {
-      'completed': { text: '已完成', color: 'bg-emerald-100 text-emerald-700' },
-      'cancelled': { text: '已取消', color: 'bg-red-50 text-red-500' },
-      'no_show': { text: '未到', color: 'bg-gray-200 text-gray-600' },
-      'pending': { text: '已預約', color: 'bg-amber-100 text-amber-700' },
-      'confirmed': { text: '已確認', color: 'bg-indigo-100 text-indigo-700' }
-    };
-    return map[status] || { text: status, color: 'bg-gray-100 text-gray-400' };
-  };
-  
-  const statusInfo = getStatusLabel(appt.status);
+  const isCompleted = appt.status === 'completed';
+  const isCancelled = appt.status === 'cancelled';
   
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 pl-6 opacity-80 hover:opacity-100 transition-opacity">
@@ -510,8 +494,16 @@ const HistoryCard = ({ appt, themeColor, onRebook }) => {
         <span className="text-xs font-medium text-gray-400">
           {format(startDate, 'yyyy年M月d日', { locale: zhTW })}
         </span>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusInfo.color}`}>
-          {statusInfo.text}
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+          isCompleted ? 'bg-gray-100 text-gray-600' : 
+          isCancelled ? 'bg-red-50 text-red-500' : 
+          appt.status === 'noshow' ? 'bg-red-50 text-red-700' :
+          'bg-gray-100 text-gray-400'
+        }`}>
+          {isCompleted ? '已完成' : 
+           isCancelled ? '已取消' : 
+           appt.status === 'noshow' ? 'NoShow' :
+           appt.status}
         </span>
       </div>
 

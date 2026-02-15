@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { format, addDays, startOfDay, endOfDay, isSameDay, parseISO, addMinutes, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, differenceInMinutes } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note, HourglassMedium, CalendarCheck, XCircle as XCircleIcon, UserMinus } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note } from '@phosphor-icons/react';
 import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import NewAppointmentModal from '../components/NewAppointmentModal';
@@ -13,36 +13,8 @@ import DepositReviewModal from '../components/DepositReviewModal';
 // Constants
 const OPEN_HOUR = 10;
 const CLOSE_HOUR = 21;
-const SLOT_HEIGHT = 60;
+const SLOT_HEIGHT = 60; // 1 hour = 60px height
 const MINUTE_HEIGHT = SLOT_HEIGHT / 60;
-
-const getStatusLabel = (status) => {
-  const map = {
-    'pending': '已預約',
-    'scheduled': '已預約',
-    'confirmed': '已確認',
-    'completed': '已完成',
-    'cancelled': '已取消',
-    'no_show': 'NoShow',
-    'blocked': '鎖定',
-    'pending_deposit': '待付訂金'
-  };
-  return map[status] || status;
-};
-
-const getStatusTagStyle = (status) => {
-  const map = {
-    'pending': 'bg-amber-500/90 text-white',
-    'scheduled': 'bg-amber-500/90 text-white',
-    'confirmed': 'bg-indigo-500/90 text-white',
-    'completed': 'bg-emerald-500/90 text-white',
-    'cancelled': 'bg-slate-400/90 text-white',
-    'no_show': 'bg-red-500/90 text-white',
-    'blocked': 'bg-slate-500/90 text-white',
-    'pending_deposit': 'bg-orange-500/90 text-white'
-  };
-  return map[status] || 'bg-gray-500/90 text-white';
-};
 
 // Helper to calculate layout for overlapping events
 const calculateLayout = (events) => {
@@ -306,8 +278,10 @@ const CalendarPage = () => {
     }
 
     // 2. Status Overrides (Critical statuses override category color)
-    if (appt.status === 'completed') statusColor = 'border-l-4 border-green-500 bg-green-50 text-green-800';
-    if (appt.status === 'cancelled') statusColor = 'border-l-4 border-red-500 bg-red-50 text-red-800 opacity-60';
+    if (appt.status === 'booked') statusColor = 'border-l-4 border-blue-500 bg-blue-50 text-blue-900';
+    if (appt.status === 'completed') statusColor = 'border-l-4 border-purple-500 bg-purple-50 text-purple-900';
+    if (appt.status === 'noshow') statusColor = 'border-l-4 border-red-500 bg-red-50 text-red-900';
+    if (appt.status === 'cancelled') statusColor = 'border-l-4 border-slate-400 bg-slate-100 text-slate-500 opacity-60 line-through';
     if (appt.status === 'blocked') statusColor = 'border-l-4 border-slate-500 bg-slate-200/80 text-slate-700 pattern-diagonal-lines-sm';
 
     return {
@@ -529,14 +503,9 @@ const CalendarPage = () => {
                                       </div>
                                    </div>
                                  ) : (
-                                   <div className="flex flex-col h-full justify-between px-2 py-1 overflow-hidden">
-                                      <div className="flex items-start justify-between gap-1">
-                                        <div className="font-bold text-sm text-slate-900 leading-tight truncate flex-1">
-                                           {appt.customers?.name || '未知客'}
-                                        </div>
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${getStatusTagStyle(appt.status)}`}>
-                                           {getStatusLabel(appt.status)}
-                                        </span>
+                                   <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
+                                      <div className="font-bold text-sm text-slate-900 leading-tight truncate">
+                                         {appt.customers?.name || '未知客'}
                                       </div>
                                       <div className="text-xs opacity-90 truncate mt-0.5">
                                          {appt.services?.name}
@@ -607,15 +576,10 @@ const CalendarPage = () => {
                                </div>
                             ) : (
                               <>
-                                <div className="flex items-center justify-between gap-1">
-                                  <div className="font-semibold truncate flex items-center gap-1 text-[10px] flex-1">
-                                   <div className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></div>
-                                   <span className="truncate">{appt.customers?.name}</span>
-                                  </div>
-                                  <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${getStatusTagStyle(appt.status)}`}>
-                                     {getStatusLabel(appt.status)}
-                                  </span>
-                                </div>
+                                <div className="font-semibold truncate flex items-center gap-1 text-[10px]">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></div>
+                                 <span className="truncate">{appt.customers?.name}</span>
+                               </div>
                                <div className="text-[10px] opacity-80 truncate leading-tight hidden md:block">
                                   {appt.services?.name}
                                </div>
@@ -669,43 +633,46 @@ const CalendarPage = () => {
                         
                         {/* Appointment Dots/Bars */}
                         <div className="flex-1 flex flex-col gap-1 overflow-hidden">
-                          {dayAppts.slice(0, 3).map(appt => (
+                          {dayAppts.slice(0, 3).map(appt => {
+                            let styleClass = 'bg-green-50 border-green-200 text-green-700';
+                            let dotClass = 'bg-green-500';
+
+                            if (appt.status === 'booked') {
+                                styleClass = 'bg-blue-50 border-blue-200 text-blue-700';
+                                dotClass = 'bg-blue-500';
+                            } else if (appt.status === 'completed') {
+                                styleClass = 'bg-purple-50 border-purple-200 text-purple-700';
+                                dotClass = 'bg-purple-500';
+                            } else if (appt.status === 'noshow') {
+                                styleClass = 'bg-red-50 border-red-200 text-red-700';
+                                dotClass = 'bg-red-500';
+                            } else if (appt.status === 'cancelled') {
+                                styleClass = 'bg-slate-50 border-slate-200 text-slate-400 line-through';
+                                dotClass = 'bg-slate-400';
+                            } else if (appt.status === 'blocked') {
+                                styleClass = 'bg-slate-100 border-slate-300 text-slate-600';
+                                dotClass = 'bg-slate-500';
+                            }
+
+                            return (
                             <div 
                               key={appt.id} 
-                              className={`text-[10px] border rounded px-1 py-0.5 truncate shadow-sm flex items-center gap-1 cursor-pointer hover:brightness-95
-                                ${appt.status === 'blocked' 
-                                  ? 'bg-slate-100 border-slate-300 text-slate-600' 
-                                  : appt.status === 'cancelled'
-                                  ? 'bg-slate-50 border-slate-200 text-slate-400 line-through'
-                                  : appt.status === 'no_show'
-                                  ? 'bg-red-50 border-red-200 text-red-600'
-                                  : appt.status === 'completed'
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                  : appt.status === 'pending'
-                                  ? 'bg-amber-50 border-amber-200 text-amber-600'
-                                  : 'bg-indigo-50 border-indigo-200 text-indigo-700'}
-                              `}
+                              className={`text-[10px] border rounded px-1 py-0.5 truncate shadow-sm flex items-center gap-1 cursor-pointer hover:brightness-95 ${styleClass}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedAppointmentId(appt.id);
                               }}
                             >
-                               <div className={`w-1.5 h-1.5 rounded-full shrink-0 
-                                 ${appt.status === 'blocked' ? 'bg-slate-500' 
-                                   : appt.status === 'cancelled' ? 'bg-slate-400'
-                                   : appt.status === 'no_show' ? 'bg-red-500'
-                                   : appt.status === 'completed' ? 'bg-emerald-500'
-                                   : appt.status === 'pending' ? 'bg-amber-500'
-                                   : 'bg-indigo-500'}
-                               `}></div>
+                               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`}></div>
                                <span className="font-mono font-bold text-[10px] leading-none opacity-90">
                                  {format(parseISO(appt.start_time), 'HH:mm')}
                                </span>
-                               <span className="truncate flex-1">
+                               <span className="truncate">
                                  {appt.status === 'blocked' ? (appt.notes?.split(' - ')[0] || '鎖定') : appt.customers?.name}
                                </span>
                             </div>
-                          ))}
+                            );
+                          })}
                           {dayAppts.length > 3 && (
                             <div className="text-[10px] text-slate-400 text-center">
                               +{dayAppts.length - 3} 更多

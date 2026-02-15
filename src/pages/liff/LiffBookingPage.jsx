@@ -494,7 +494,8 @@ const LiffBookingPage = () => {
           
           const endTime = addMinutes(startTime, selectedService.duration);
           
-          let status = 'pending';
+          // Check Deposit Requirement
+          let status = 'confirmed';
           let depositRequired = false;
           
           if (depositConfig?.enabled && depositConfig?.start_date && depositConfig?.end_date) {
