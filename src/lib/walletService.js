@@ -169,7 +169,7 @@ export const walletService = {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    const { data, error } = await supabase.rpc('create_payment_token', {
+    const { data: rpcData, error } = await supabase.rpc('create_payment_token', {
       p_user_id: userId,
       p_tenant_id: tenantId,
       p_token_hash: tokenHash,
