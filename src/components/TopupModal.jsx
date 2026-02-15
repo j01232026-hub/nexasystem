@@ -31,6 +31,14 @@ const TopupModal = ({ isOpen, onClose, tenantId, operatorId, onSuccess }) => {
 
   const searchCustomers = async () => {
     if (!searchPhone.trim()) return;
+    
+    console.log('TopupModal: Searching with tenantId:', tenantId);
+    
+    if (!tenantId || tenantId === 'null') {
+      setError('Invalid Tenant ID');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     

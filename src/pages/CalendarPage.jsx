@@ -125,7 +125,15 @@ const CalendarPage = () => {
         .single();
 
       if (!profile) return;
-      setTenantId(profile.tenant_id);
+      
+      console.log('CalendarPage: Tenant ID fetched:', profile.tenant_id);
+      
+      if (profile.tenant_id && profile.tenant_id !== 'null') {
+        setTenantId(profile.tenant_id);
+      } else {
+        console.error('CalendarPage: Invalid tenant_id:', profile.tenant_id);
+        return;
+      }
 
       // 2. Fetch Staff (if not already loaded)
       let currentStaff = staff;
