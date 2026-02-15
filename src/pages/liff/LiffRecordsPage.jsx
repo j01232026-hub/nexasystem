@@ -246,8 +246,8 @@ const LiffRecordsPage = () => {
       </div>
       
       {depositModalOpen && depositAppt && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-xl p-6 sm:p-7 pb-8">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4 pb-0">
+          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-xl p-6 sm:p-7 pb-safe max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-xs font-bold text-orange-500">待付訂金</p>
