@@ -15,9 +15,10 @@ create table if not exists deposit_reports (
 -- Enable RLS
 alter table deposit_reports enable row level security;
 
--- Policies
+-- Policies (Drop existing first to avoid conflicts)
 
 -- 1. Users can insert their own reports
+drop policy if exists "Users can insert their own reports" on deposit_reports;
 create policy "Users can insert their own reports"
   on deposit_reports for insert
   to authenticated
@@ -26,6 +27,7 @@ create policy "Users can insert their own reports"
   );
 
 -- 2. Users can view their own reports
+drop policy if exists "Users can view their own reports" on deposit_reports;
 create policy "Users can view their own reports"
   on deposit_reports for select
   to authenticated
@@ -34,6 +36,7 @@ create policy "Users can view their own reports"
   );
 
 -- 3. Tenants (Staff/Owners) can view reports for their tenant
+drop policy if exists "Tenants can view reports for their tenant" on deposit_reports;
 create policy "Tenants can view reports for their tenant"
   on deposit_reports for select
   to authenticated
@@ -47,6 +50,7 @@ create policy "Tenants can view reports for their tenant"
   );
 
 -- 4. Tenants (Staff/Owners) can update status
+drop policy if exists "Tenants can update reports for their tenant" on deposit_reports;
 create policy "Tenants can update reports for their tenant"
   on deposit_reports for update
   to authenticated
@@ -59,6 +63,9 @@ create policy "Tenants can update reports for their tenant"
     )
   );
 
--- Add indexes for performance
+-- Add indexes for performance (Drop first to avoid conflicts if needed, or use IF NOT EXISTS)
+drop index if exists deposit_reports_appointment_id_idx;
 create index deposit_reports_appointment_id_idx on deposit_reports(appointment_id);
+
+drop index if exists deposit_reports_tenant_id_status_idx;
 create index deposit_reports_tenant_id_status_idx on deposit_reports(tenant_id, status);
