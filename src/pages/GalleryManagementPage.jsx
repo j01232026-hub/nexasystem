@@ -92,12 +92,19 @@ const GalleryManagementPage = () => {
       console.log('Fetching with tenant_id:', profile.tenant_id);
 
       const [catRes, svcRes] = await Promise.all([
-        supabase.from('service_categories').select('*').eq('tenant_id', profile.tenant_id).order('sort_order'),
+        supabase.from('service_categories').select('*').eq('tenant_id', profile.tenant_id).order('name'),
         supabase.from('services').select('*').eq('tenant_id', profile.tenant_id).order('name')
       ]);
 
       console.log('Categories response:', catRes);
       console.log('Services response:', svcRes);
+      
+      if (catRes.error) {
+        console.error('Categories error:', catRes.error);
+      }
+      if (svcRes.error) {
+        console.error('Services error:', svcRes.error);
+      }
 
       setCategories(catRes.data || []);
       setServices(svcRes.data || []);
