@@ -240,7 +240,7 @@ const TopupModal = ({ isOpen, onClose, tenantId, operatorId, onSuccess }) => {
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <Cash className="w-6 h-6" />
+                    <Money className="w-6 h-6" />
                     <span className="text-xs font-medium">現金</span>
                   </button>
                   <button
