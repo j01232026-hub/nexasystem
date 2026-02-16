@@ -55,15 +55,30 @@ const GalleryManagementPage = () => {
     try {
       // 1. Fetch Categories & Services - tenant-specific
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No user found');
+        return;
+      }
 
-      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
-      if (!profile) return;
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return;
+      }
+      if (!profile) {
+        console.log('No profile found');
+        return;
+      }
+
+      console.log('Fetching with tenant_id:', profile.tenant_id);
 
       const [catRes, svcRes] = await Promise.all([
         supabase.from('service_categories').select('*').eq('tenant_id', profile.tenant_id).order('sort_order'),
         supabase.from('services').select('*').eq('tenant_id', profile.tenant_id).order('name')
       ]);
+
+      console.log('Categories response:', catRes);
+      console.log('Services response:', svcRes);
 
       setCategories(catRes.data || []);
       setServices(svcRes.data || []);
