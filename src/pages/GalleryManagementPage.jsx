@@ -211,18 +211,12 @@ const GalleryManagementPage = () => {
         return;
       }
 
-      // 2. 刪除資料庫記錄（加入租戶篩選）
-      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
-      if (!profile) {
-        alert('無法取得使用者資訊');
-        return;
-      }
-
+      // 2. 刪除資料庫記錄（確保是作者本人）
       const { error: dbError } = await supabase
         .from('gallery_posts')
         .delete()
         .eq('id', id)
-        .eq('tenant_id', profile.tenant_id); // 加入租戶篩選
+        .eq('author_id', user.id); // 確保只能刪除自己的圖片
 
       if (dbError) throw dbError;
 
