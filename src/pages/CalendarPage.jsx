@@ -66,6 +66,20 @@ const getStatusLabel = (status) => {
   return map[status] || status;
 };
 
+const getStatusDotColor = (status) => {
+  const map = {
+    booked: 'bg-blue-500',
+    confirmed: 'bg-green-500',
+    scheduled: 'bg-green-500',
+    completed: 'bg-purple-500',
+    noshow: 'bg-red-500',
+    cancelled: 'bg-slate-400',
+    blocked: 'bg-slate-500',
+    pending_deposit: 'bg-orange-500'
+  };
+  return map[status] || 'bg-slate-400';
+};
+
 // Helper to calculate layout for overlapping events
 const calculateLayout = (events) => {
   if (!events || events.length === 0) return [];
@@ -230,7 +244,8 @@ const CalendarPage = () => {
         `)
         .eq('tenant_id', profile.tenant_id)
         .gte('start_time', startRange)
-        .lte('start_time', endRange);
+        .lte('start_time', endRange)
+        .order('start_time', { ascending: true });
 
       if (error) throw error;
       
@@ -559,16 +574,14 @@ const CalendarPage = () => {
                                  ) : (
                                    <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
                                       <div className="font-bold text-sm text-slate-900 leading-tight truncate">
-                                         {appt.customers?.name || '未知客'}
-                                      </div>
-                                      <div className="text-xs opacity-90 truncate mt-0.5">
-                                         {appt.services?.name}
-                                      </div>
-                                      {/* Status Badge */}
-                                      <div className={`text-[10px] px-1.5 py-0.5 rounded-full inline-block mt-1 w-fit ${getStatusBadgeColor(appt.status)}`}>
-                                        {getStatusLabel(appt.status)}
-                                      </div>
-                                   </div>
+                                        {appt.customers?.name || '未知客'}
+                                     </div>
+                                     <div className="text-xs opacity-90 truncate mt-0.5">
+                                        {appt.services?.name}
+                                     </div>
+                                     {/* Status Badge */}
+                                     <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${getStatusDotColor(appt.status)}`}></div>
+                                  </div>
                                  )}
                                </div>
                              );
@@ -642,9 +655,7 @@ const CalendarPage = () => {
                                   {appt.services?.name}
                                </div>
                                {/* Status Badge */}
-                               <div className={`text-[10px] px-1.5 py-0.5 rounded-full inline-block mt-0.5 w-fit scale-90 origin-top-left ${getStatusBadgeColor(appt.status)}`}>
-                                 {getStatusLabel(appt.status)}
-                               </div>
+                               <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${getStatusDotColor(appt.status)}`}></div>
                               </>
                             )}
                          </div>
@@ -696,28 +707,20 @@ const CalendarPage = () => {
                         {/* Appointment Dots/Bars */}
                         <div className="flex-1 flex flex-col gap-1 overflow-hidden">
                           {dayAppts.slice(0, 3).map(appt => {
-                            let styleClass = 'bg-green-50 border-green-200 text-green-700';
-                            let dotClass = 'bg-green-500';
-
-                            if (appt.status === 'booked') {
-                                styleClass = 'bg-blue-50 border-blue-200 text-blue-700';
-                                dotClass = 'bg-blue-500';
-                            } else if (appt.status === 'completed') {
-                                styleClass = 'bg-purple-50 border-purple-200 text-purple-700';
-                                dotClass = 'bg-purple-500';
-                            } else if (appt.status === 'noshow') {
-                                styleClass = 'bg-red-50 border-red-200 text-red-700';
-                                dotClass = 'bg-red-500';
-                            } else if (appt.status === 'cancelled') {
-                                styleClass = 'bg-slate-50 border-slate-200 text-slate-400 line-through';
-                                dotClass = 'bg-slate-400';
-                            } else if (appt.status === 'blocked') {
-                                styleClass = 'bg-slate-100 border-slate-300 text-slate-600';
-                                dotClass = 'bg-slate-500';
-                            } else if (appt.status === 'pending_deposit') {
-                                styleClass = 'bg-orange-50 border-orange-200 text-orange-700';
-                                dotClass = 'bg-orange-500';
+                            let styleClass = 'bg-slate-50 border-slate-200 text-slate-700';
+                            const categoryColor = appt.services?.service_categories?.color;
+                            if (categoryColor && CATEGORY_COLORS[categoryColor]) {
+                                styleClass = CATEGORY_COLORS[categoryColor];
                             }
+
+                            if (appt.status === 'blocked') {
+                                styleClass = 'bg-slate-100 border-slate-300 text-slate-600';
+                            }
+                            if (appt.status === 'cancelled') {
+                                styleClass += ' opacity-60 line-through';
+                            }
+                            
+                            const dotClass = getStatusDotColor(appt.status);
 
                             return (
                             <div 
