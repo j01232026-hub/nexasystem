@@ -4,7 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { walletService } from '../../lib/walletService';
-import { format, parseISO, isPast, isFuture, compareDesc, compareAsc } from 'date-fns';
+import { format, parseISO, isPast, isFuture, compareDesc, compareAsc, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
@@ -94,15 +94,35 @@ const LiffRecordsPage = () => {
       if (error) throw error;
 
       const now = new Date();
-      const upcoming = data.filter(appt => 
-        isFuture(parseISO(appt.start_time)) && 
-        ['booked', 'confirmed', 'scheduled', 'pending_deposit'].includes(appt.status)
-      ).sort((a, b) => compareAsc(parseISO(a.start_time), parseISO(b.start_time)));
+      const todayStart = startOfDay(now);
 
-      const history = data.filter(appt => 
-        isPast(parseISO(appt.start_time)) || 
-        ['completed', 'cancelled', 'noshow', 'no_show'].includes(appt.status)
-      ).sort((a, b) => compareDesc(parseISO(a.start_time), parseISO(b.start_time)));
+      // Helper to check if status is active
+      const isActiveStatus = (status) => ['booked', 'confirmed', 'scheduled', 'pending_deposit'].includes(status);
+      const isHistoryStatus = (status) => ['completed', 'cancelled', 'noshow', 'no_show'].includes(status);
+
+      const upcoming = data.filter(appt => {
+        const apptStart = parseISO(appt.start_time);
+        const apptDayStart = startOfDay(apptStart);
+        
+        // Upcoming logic:
+        // 1. Status is active
+        // 2. Date is Today or Future (regardless of specific time)
+        return isActiveStatus(appt.status) && (
+          isFuture(apptDayStart) || isSameDay(apptDayStart, todayStart)
+        );
+      }).sort((a, b) => compareAsc(parseISO(a.start_time), parseISO(b.start_time)));
+
+      const history = data.filter(appt => {
+        const apptStart = parseISO(appt.start_time);
+        const apptDayStart = startOfDay(apptStart);
+
+        // History logic:
+        // 1. Status is history (completed/cancelled/noshow)
+        // 2. OR Status is active BUT Date is Past (Yesterday or earlier)
+        if (isHistoryStatus(appt.status)) return true;
+        if (isActiveStatus(appt.status) && isBefore(apptDayStart, todayStart)) return true;
+        return false;
+      }).sort((a, b) => compareDesc(parseISO(a.start_time), parseISO(b.start_time)));
 
       setAppointments({ upcoming, history });
     } catch (err) {

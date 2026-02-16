@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabaseClient';
-import { X, User, Calendar, Clock, Receipt, Note, Pencil, Trash, Lock, CheckCircle, Warning, Phone, Tag, Prohibit } from '@phosphor-icons/react';
+import { X, User, Calendar, Clock, Receipt, Note, Pencil, Trash, Lock, CheckCircle, Warning, Phone, Tag, Prohibit, ArrowClockwise } from '@phosphor-icons/react';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 
@@ -339,21 +339,23 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
                     </>
                 )}
 
-                {details.status === 'confirmed' && (
+                {(details.status === 'confirmed' || ['completed', 'noshow'].includes(details.status)) && (
                     <>
                         <button 
                             onClick={() => handleStatusChange('completed')}
-                            className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            className={`bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'completed' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={details.status === 'completed'}
                         >
                             <CheckCircle size={18} weight="bold" />
-                            完成服務
+                            {details.status === 'completed' ? '已完成' : '完成服務'}
                         </button>
                         <button 
                             onClick={() => handleStatusChange('noshow')}
-                            className="bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            className={`bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'noshow' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={details.status === 'noshow'}
                         >
                             <Warning size={18} weight="bold" />
-                            NoShow
+                            {details.status === 'noshow' ? 'NoShow' : 'NoShow'}
                         </button>
                     </>
                 )}
@@ -362,7 +364,7 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
              {/* Secondary Actions */}
              <div className="flex gap-3">
                {/* Edit Button */}
-               {onEdit && ['booked', 'confirmed'].includes(details.status) && (
+               {onEdit && (
                   <button 
                     onClick={() => onEdit(details, items)}
                     className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
@@ -372,7 +374,7 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
                   </button>
                )}
                
-               {/* Cancel Button */}
+               {/* Cancel Button - Only for active */}
                {['booked', 'confirmed'].includes(details.status) && (
                    <button 
                     onClick={() => handleStatusChange('cancelled')}
@@ -380,6 +382,17 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
                   >
                     <Prohibit size={18} weight="bold" />
                     取消預約
+                  </button>
+               )}
+
+                {/* Revert Button - For history items to allow correction */}
+                {['completed', 'noshow', 'cancelled'].includes(details.status) && (
+                   <button 
+                    onClick={() => handleStatusChange('confirmed')}
+                    className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 border border-blue-100"
+                  >
+                    <ArrowClockwise size={18} weight="bold" />
+                    重設狀態
                   </button>
                )}
              </div>

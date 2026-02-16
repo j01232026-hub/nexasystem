@@ -58,13 +58,20 @@ const HomePage = () => {
     try {
       const { data: appointments } = await supabase
         .from('appointments')
-        .select('id, total_price')
+        .select(`
+          id,
+          appointment_items (price)
+        `)
         .eq('tenant_id', tid)
         .gte('start_time', startOfDay.toISOString())
         .lt('start_time', endOfDay.toISOString());
 
       const count = appointments?.length || 0;
-      const revenue = appointments?.reduce((sum, a) => sum + (a.total_price || 0), 0) || 0;
+      const revenue = appointments?.reduce((sum, appt) => {
+        const apptTotal = appt.appointment_items?.reduce((s, i) => s + (i.price || 0), 0) || 0;
+        return sum + apptTotal;
+      }, 0) || 0;
+      
       setTodayStats({ appointments: count, revenue });
     } catch (err) {
       console.error('Error fetching stats:', err);
