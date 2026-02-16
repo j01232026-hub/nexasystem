@@ -453,19 +453,19 @@ const CalendarPage = () => {
             onClick={() => setView('day')}
             className={`flex-1 justify-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'day' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-500 hover:text-rose-500 hover:bg-rose-50'}`}
           >
-            日檢視
+            日
           </button>
           <button 
             onClick={() => setView('week')}
             className={`flex-1 justify-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'week' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-500 hover:text-rose-500 hover:bg-rose-50'}`}
           >
-            週檢視
+            週
           </button>
           <button 
             onClick={() => setView('month')}
             className={`flex-1 justify-center px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'month' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-500 hover:text-rose-500 hover:bg-rose-50'}`}
           >
-            月檢視
+            月
           </button>
         </div>
 
@@ -573,15 +573,18 @@ const CalendarPage = () => {
                                    </div>
                                  ) : (
                                    <div className="flex flex-col h-full justify-center px-2 overflow-hidden">
-                                      <div className="font-bold text-sm text-slate-900 leading-tight truncate">
-                                        {appt.customers?.name || '未知客'}
-                                     </div>
-                                     <div className="text-xs opacity-90 truncate mt-0.5">
-                                        {appt.services?.name}
-                                     </div>
-                                     {/* Status Badge */}
-                                     <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${getStatusDotColor(appt.status)}`}></div>
-                                  </div>
+                                      <div className="flex items-center gap-1.5 w-full">
+                                        <span className="font-bold text-sm text-slate-900 leading-tight truncate">
+                                          {appt.customers?.name || '未知客'}
+                                        </span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 ${getStatusBadgeColor(appt.status)}`}>
+                                          {getStatusLabel(appt.status)}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs opacity-90 truncate mt-0.5">
+                                         {appt.services?.name}
+                                      </div>
+                                   </div>
                                  )}
                                </div>
                              );
@@ -648,14 +651,12 @@ const CalendarPage = () => {
                             ) : (
                               <>
                                 <div className="font-semibold truncate flex items-center gap-1 text-[10px]">
-                                 <div className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></div>
+                                 <div className={`w-2 h-2 rounded-full shrink-0 ${getStatusDotColor(appt.status)}`}></div>
                                  <span className="truncate">{appt.customers?.name}</span>
                                </div>
                                <div className="text-[10px] opacity-80 truncate leading-tight hidden md:block">
                                   {appt.services?.name}
                                </div>
-                               {/* Status Badge */}
-                               <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${getStatusDotColor(appt.status)}`}></div>
                               </>
                             )}
                          </div>
