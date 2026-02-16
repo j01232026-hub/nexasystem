@@ -7,6 +7,7 @@ import {
   Trash, 
   Tag, 
   Image as ImageIcon,
+  ImageSquare,
   CheckCircle,
   XCircle,
   Plus
