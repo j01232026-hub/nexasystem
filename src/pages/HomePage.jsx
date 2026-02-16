@@ -21,16 +21,27 @@ const HomePage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: staffData } = await supabase
-          .from('staff')
-          .select('id, tenant_id')
-          .eq('user_id', user.id)
+        // 1. Get Tenant ID from Profile (Reliable)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', user.id)
           .single();
-        
-        if (staffData) {
-          setTenantId(staffData.tenant_id);
-          setOperatorId(staffData.id);
-          fetchTodayStats(staffData.tenant_id);
+
+        if (profile) {
+          setTenantId(profile.tenant_id);
+          fetchTodayStats(profile.tenant_id);
+          
+          // 2. Get Staff ID (For Operator actions)
+          const { data: staffData } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (staffData) {
+            setOperatorId(staffData.id);
+          }
         }
       }
     } catch (err) {
