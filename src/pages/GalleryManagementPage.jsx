@@ -53,11 +53,20 @@ const GalleryManagementPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Categories & Services
-      const { data: cats } = await supabase.from('service_categories').select('*').order('sort_order');
-      const { data: svcs } = await supabase.from('services').select('*').order('name');
-      setCategories(cats || []);
-      setServices(svcs || []);
+      // 1. Fetch Categories & Services - tenant-specific
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+      if (!profile) return;
+
+      const [catRes, svcRes] = await Promise.all([
+        supabase.from('service_categories').select('*').eq('tenant_id', profile.tenant_id).order('sort_order'),
+        supabase.from('services').select('*').eq('tenant_id', profile.tenant_id).order('name')
+      ]);
+
+      setCategories(catRes.data || []);
+      setServices(svcRes.data || []);
 
       // 2. Fetch Existing Gallery Images
       const { data: imgs, error } = await supabase
