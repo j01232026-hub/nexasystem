@@ -36,25 +36,44 @@ const GalleryManagementPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Fetch user profile name if available, otherwise use email or metadata
-        // Assuming there's a profiles table or metadata. 
-        // For now, let's use user_metadata.name or email
-        const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Admin';
-        setCurrentUser({ id: user.id, name });
-      }
-    };
-    fetchUser();
-    fetchData();
+    checkAuthAndFetch();
   }, []);
 
-  const fetchData = async () => {
+  const checkAuthAndFetch = async () => {
+    try {
+      setLoading(true);
+      console.log('Supabase client check:', supabase);
+      console.log('Supabase auth check:', supabase.auth);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No authenticated user');
+        return;
+      }
+      
+      console.log('Authenticated user:', user.id);
+      
+      // Fetch user profile name if available
+      const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Admin';
+      setCurrentUser({ id: user.id, name });
+      
+      // Fetch data with authenticated user
+      await fetchData(user);
+    } catch (error) {
+      console.error('Auth error:', error);
+    }
+  };
+
+  const fetchData = async (currentUser) => {
     setLoading(true);
     try {
       // 1. Fetch Categories & Services - tenant-specific
-      const { data: { user } } = await supabase.auth.getUser();
+      let user = currentUser;
+      if (!user) {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+      }
+      
       if (!user) {
         console.log('No user found');
         return;
