@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkle, UserList, Storefront, UserCircle, CaretRight } from '@phosphor-icons/react';
+import { Sparkle, UserList, Storefront, UserCircle, CaretRight, ImageSquare } from '@phosphor-icons/react';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 
 const AdminPage = () => {
@@ -30,6 +30,14 @@ const AdminPage = () => {
       color: 'text-emerald-500', 
       bg: 'bg-emerald-50',
       path: '/store-profile' 
+    },
+    { 
+      title: '美麗藝廊管理', 
+      subtitle: '上傳作品、管理分類與標籤', 
+      icon: ImageSquare, 
+      color: 'text-pink-500', 
+      bg: 'bg-pink-50',
+      path: '/admin/gallery' 
     },
     { 
       title: '我的帳號', 

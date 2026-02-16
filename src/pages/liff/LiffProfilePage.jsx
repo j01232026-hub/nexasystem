@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { useLiffAuth } from '../../context/LiffAuthContext';
+import { supabase } from '../../lib/supabaseClient';
 import { 
   Gear, 
   QrCode, 
@@ -11,22 +13,77 @@ import {
   ClockCounterClockwise, 
   CaretRight,
   UserCircle,
-  ShareNetwork
+  ShareNetwork,
+  Trash
 } from '@phosphor-icons/react';
 
 const LiffProfilePage = () => {
   const { themeColor } = useTheme();
+  const { liffUser } = useLiffAuth();
   const [activeTab, setActiveTab] = useState('appointments');
+  const [collections, setCollections] = useState([]);
+  const [loadingCollections, setLoadingCollections] = useState(false);
 
-  // Mock Data
+  // Fetch Collections when tab is active
+  useEffect(() => {
+    if (activeTab === 'collections' && liffUser?.userId) {
+      fetchCollections();
+    }
+  }, [activeTab, liffUser]);
+
+  const fetchCollections = async () => {
+    setLoadingCollections(true);
+    try {
+      const { data, error } = await supabase
+        .from('gallery_likes')
+        .select(`
+          post_id,
+          gallery_posts (
+            id,
+            image_url,
+            title,
+            service_categories(name)
+          )
+        `)
+        .eq('user_id', liffUser.userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Flatten data structure
+      const formatted = data.map(item => item.gallery_posts).filter(post => post !== null);
+      setCollections(formatted);
+    } catch (err) {
+      console.error('Error fetching collections:', err);
+    } finally {
+      setLoadingCollections(false);
+    }
+  };
+
+  const removeCollection = async (postId) => {
+    if (!confirm('確定要取消收藏嗎？')) return;
+    try {
+        await supabase
+            .from('gallery_likes')
+            .delete()
+            .eq('user_id', liffUser.userId)
+            .eq('post_id', postId);
+        
+        setCollections(prev => prev.filter(p => p.id !== postId));
+    } catch (err) {
+        console.error('Remove failed', err);
+    }
+  };
+
+  // Mock Data (Keep user & appointments mock for now as requested only for gallery)
   const user = {
-    name: '林曉美',
+    name: liffUser?.displayName || '訪客',
     username: 'amy_beauty_lover',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amy',
+    avatar: liffUser?.pictureUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amy',
     level: 'Gold VIP',
     following: 12,
     followers: 48,
-    likes: 128,
+    likes: collections.length || 0,
     balance: 5200,
     coupons: 3,
     points: 1500,
@@ -37,12 +94,6 @@ const LiffProfilePage = () => {
     { id: 2, title: '水飛梭深層清潔', date: '2025-01-20', time: '10:30', status: 'completed', staff: 'Jessica' },
   ];
 
-  const collections = [
-    'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1519014816548-bf5fe059e98b?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,26 +251,46 @@ const LiffProfilePage = () => {
 
             {/* Tab: Collections (Masonry-ish Grid) */}
             {activeTab === 'collections' && (
+                <>
+                {loadingCollections ? (
+                   <div className="flex justify-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                   </div>
+                ) : collections.length === 0 ? (
+                   <div className="text-center py-10 text-gray-400">
+                      <p>尚未收藏任何靈感</p>
+                      <p className="text-xs mt-1">去首頁逛逛吧！</p>
+                   </div>
+                ) : (
                 <div className="columns-2 gap-3 space-y-3">
-                    {collections.map((img, idx) => (
-                        <div key={idx} className="bg-white rounded-xl overflow-hidden shadow-sm break-inside-avoid">
-                            <img src={img} alt="Collection" className="w-full h-auto object-cover" />
+                    {collections.map((post) => (
+                        <div key={post.id} className="bg-white rounded-xl overflow-hidden shadow-sm break-inside-avoid relative group">
+                            <img src={post.image_url} alt="Collection" className="w-full h-auto object-cover" />
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => removeCollection(post.id)}
+                                    className="p-1 bg-black/30 backdrop-blur-md rounded-full text-white hover:bg-red-500"
+                                >
+                                    <Trash size={14} />
+                                </button>
+                            </div>
                             <div className="p-2">
-                                <div className="text-xs font-bold text-gray-800 mb-1">夏日清爽款美甲推薦</div>
+                                <div className="text-xs font-bold text-gray-800 mb-1 line-clamp-1">{post.title || '未命名'}</div>
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center space-x-1">
                                         <div className="w-4 h-4 rounded-full bg-gray-200"></div>
-                                        <span className="text-[10px] text-gray-500">Nana</span>
+                                        <span className="text-[10px] text-gray-500">{post.service_categories?.name}</span>
                                     </div>
-                                    <div className="flex items-center space-x-0.5 text-gray-400">
-                                        <Heart size={12} />
-                                        <span className="text-[10px]">128</span>
+                                    <div className="flex items-center space-x-0.5 text-red-400">
+                                        <Heart size={12} weight="fill" />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
+                )}
+                </>
             )}
 
             {/* Tab: Membership */}
