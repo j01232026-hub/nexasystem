@@ -33,7 +33,20 @@ const GalleryManagementPage = () => {
     service_id: ''
   });
 
+  const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Fetch user profile name if available, otherwise use email or metadata
+        // Assuming there's a profiles table or metadata. 
+        // For now, let's use user_metadata.name or email
+        const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Admin';
+        setCurrentUser({ id: user.id, name });
+      }
+    };
+    fetchUser();
     fetchData();
   }, []);
 
@@ -115,7 +128,9 @@ const GalleryManagementPage = () => {
           category_id: newImage.category_id,
           service_id: newImage.service_id || null,
           width: newImage.width,
-          height: newImage.height
+          height: newImage.height,
+          author_id: currentUser?.id,
+          author_name: currentUser?.name
         });
 
       if (dbError) throw dbError;
@@ -203,6 +218,16 @@ const GalleryManagementPage = () => {
             {/* Form Fields */}
             <div className="space-y-4">
               <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">作者</label>
+                <input 
+                  type="text" 
+                  value={currentUser?.name || 'Loading...'}
+                  disabled
+                  className="w-full px-3 py-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm cursor-not-allowed"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">作品標題</label>
                 <input 
                   type="text" 
@@ -228,7 +253,7 @@ const GalleryManagementPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">關聯服務</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">次分類</label>
                   <select 
                     value={newImage.service_id}
                     onChange={e => setNewImage({...newImage, service_id: e.target.value})}
@@ -298,10 +323,13 @@ const GalleryManagementPage = () => {
                            <Trash size={16} weight="bold" />
                          </button>
                          <p className="text-white text-sm font-bold truncate">{img.title || '未命名'}</p>
-                         <p className="text-white/80 text-xs truncate">{img.service_categories?.name} • {img.services?.name}</p>
-                       </div>
-                     </div>
-                   </div>
+                        <p className="text-white/80 text-xs truncate">{img.service_categories?.name} • {img.services?.name}</p>
+                        {img.author_name && (
+                          <p className="text-white/60 text-[10px] mt-1 truncate">By {img.author_name}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                  ))}
                </div>
              )}
