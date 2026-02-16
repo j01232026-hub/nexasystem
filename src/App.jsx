@@ -40,9 +40,9 @@ function App() {
 
       {/* Sub-pages */}
       <Route path="/services" element={<ServiceManagementPage />} />
-        <Route path="/staff" element={<StaffManagementPage />} />
-        <Route path="/admin/gallery" element={<GalleryManagementPage />} />
-      </Route>
+      <Route path="/staff" element={<StaffManagementPage />} />
+      <Route path="/admin/gallery" element={<GalleryManagementPage />} />
+
       {/* LIFF Routes (C-Side) */}
       <Route path="/liff/:tenantId" element={<LiffRoot />}>
         {/* Fullscreen Booking Flow */}
