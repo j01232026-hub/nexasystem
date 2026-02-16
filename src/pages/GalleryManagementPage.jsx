@@ -200,20 +200,57 @@ const GalleryManagementPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, imageUrl) => {
     if (!window.confirm('確定要刪除這張圖片嗎？')) return;
 
     try {
-      const { error } = await supabase
+      // 1. 先取得當前使用者資訊以確保租戶權限
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('請先登入');
+        return;
+      }
+
+      // 2. 刪除資料庫記錄（加入租戶篩選）
+      const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single();
+      if (!profile) {
+        alert('無法取得使用者資訊');
+        return;
+      }
+
+      const { error: dbError } = await supabase
         .from('gallery_posts')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', profile.tenant_id); // 加入租戶篩選
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // 3. 刪除儲存體檔案
+      if (imageUrl) {
+        try {
+          // 從 URL 提取檔案路徑
+          const filePath = imageUrl.split('/storage/v1/object/public/images/')[1];
+          if (filePath) {
+            const { error: storageError } = await supabase.storage
+              .from('images')
+              .remove([filePath]);
+            
+            if (storageError) {
+              console.warn('儲存體刪除警告:', storageError);
+            }
+          }
+        } catch (storageErr) {
+          console.warn('儲存體刪除錯誤:', storageErr);
+        }
+      }
+
+      // 4. 更新本地狀態
       setImages(prev => prev.filter(img => img.id !== id));
+      alert('刪除成功！');
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('刪除失敗');
+      alert('刪除失敗: ' + error.message);
     }
   };
 
@@ -367,7 +404,7 @@ const GalleryManagementPage = () => {
                        <img src={img.image_url} alt={img.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                          <button 
-                           onClick={() => handleDelete(img.id)}
+                           onClick={() => handleDelete(img.id, img.image_url)}
                            className="absolute top-2 right-2 p-1.5 bg-white/20 hover:bg-red-500 backdrop-blur-md rounded-full text-white transition-colors"
                          >
                            <Trash size={16} weight="bold" />
