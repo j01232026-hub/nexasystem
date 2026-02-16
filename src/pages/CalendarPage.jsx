@@ -17,6 +17,55 @@ const CLOSE_HOUR = 21;
 const SLOT_HEIGHT = 60; // 1 hour = 60px height
 const MINUTE_HEIGHT = SLOT_HEIGHT / 60;
 
+// Category Color Map
+const CATEGORY_COLORS = {
+  rose: 'border-rose-500 bg-rose-50 text-rose-900',
+  pink: 'border-pink-500 bg-pink-50 text-pink-900',
+  purple: 'border-purple-500 bg-purple-50 text-purple-900',
+  indigo: 'border-indigo-500 bg-indigo-50 text-indigo-900',
+  blue: 'border-blue-500 bg-blue-50 text-blue-900',
+  cyan: 'border-cyan-500 bg-cyan-50 text-cyan-900',
+  teal: 'border-teal-500 bg-teal-50 text-teal-900',
+  emerald: 'border-emerald-500 bg-emerald-50 text-emerald-900',
+  green: 'border-green-500 bg-green-50 text-green-900',
+  lime: 'border-lime-500 bg-lime-50 text-lime-900',
+  yellow: 'border-yellow-500 bg-yellow-50 text-yellow-900',
+  amber: 'border-amber-500 bg-amber-50 text-amber-900',
+  orange: 'border-orange-500 bg-orange-50 text-orange-900',
+  red: 'border-red-500 bg-red-50 text-red-900',
+  slate: 'border-slate-500 bg-slate-50 text-slate-900',
+  gray: 'border-gray-500 bg-gray-50 text-gray-900',
+};
+
+// Status Badge Helper
+const getStatusBadgeColor = (status) => {
+  const map = {
+    booked: 'bg-blue-100 text-blue-700',
+    confirmed: 'bg-green-100 text-green-700',
+    scheduled: 'bg-green-100 text-green-700',
+    completed: 'bg-purple-100 text-purple-700',
+    noshow: 'bg-red-100 text-red-700',
+    cancelled: 'bg-slate-200 text-slate-500 line-through',
+    blocked: 'bg-slate-200 text-slate-600',
+    pending_deposit: 'bg-orange-100 text-orange-700'
+  };
+  return map[status] || 'bg-gray-100 text-gray-700';
+};
+
+const getStatusLabel = (status) => {
+  const map = {
+    booked: '已預約',
+    confirmed: '已確認',
+    scheduled: '已排程',
+    completed: '已完成',
+    noshow: '未出席',
+    cancelled: '已取消',
+    blocked: '鎖定',
+    pending_deposit: '待付訂金'
+  };
+  return map[status] || status;
+};
+
 // Helper to calculate layout for overlapping events
 const calculateLayout = (events) => {
   if (!events || events.length === 0) return [];
@@ -261,40 +310,25 @@ const CalendarPage = () => {
     const duration = appt.services?.duration || differenceInMinutes(parseISO(appt.end_time), parseISO(appt.start_time));
     const height = duration * MINUTE_HEIGHT;
 
-    // Status Colors
-    let statusColor = 'border-l-4 border-indigo-500 bg-indigo-50 text-indigo-700';
+    // Status Colors - Default to Slate if no category
+    let statusColor = 'border-l-4 border-slate-400 bg-slate-50 text-slate-700';
     
-    // 1. Check Service Category Color (Priority for Confirmed/Scheduled)
+    // 1. Check Service Category Color (Priority)
     const categoryColor = appt.services?.service_categories?.color;
-    const colorMap = {
-      rose: 'border-rose-500 bg-rose-50 text-rose-900',
-      pink: 'border-pink-500 bg-pink-50 text-pink-900',
-      purple: 'border-purple-500 bg-purple-50 text-purple-900',
-      indigo: 'border-indigo-500 bg-indigo-50 text-indigo-900',
-      blue: 'border-blue-500 bg-blue-50 text-blue-900',
-      cyan: 'border-cyan-500 bg-cyan-50 text-cyan-900',
-      teal: 'border-teal-500 bg-teal-50 text-teal-900',
-      emerald: 'border-emerald-500 bg-emerald-50 text-emerald-900',
-      green: 'border-green-500 bg-green-50 text-green-900',
-      lime: 'border-lime-500 bg-lime-50 text-lime-900',
-      yellow: 'border-yellow-500 bg-yellow-50 text-yellow-900',
-      amber: 'border-amber-500 bg-amber-50 text-amber-900',
-      orange: 'border-orange-500 bg-orange-50 text-orange-900',
-      red: 'border-red-500 bg-red-50 text-red-900',
-      slate: 'border-slate-500 bg-slate-50 text-slate-900',
-      gray: 'border-gray-500 bg-gray-50 text-gray-900',
-    };
 
-    if (categoryColor && colorMap[categoryColor]) {
-      statusColor = `border-l-4 ${colorMap[categoryColor]}`;
+    if (categoryColor && CATEGORY_COLORS[categoryColor]) {
+      statusColor = `border-l-4 ${CATEGORY_COLORS[categoryColor]}`;
     }
 
-    // 2. Status Overrides (Critical statuses override category color)
-    if (appt.status === 'booked') statusColor = 'border-l-4 border-blue-500 bg-blue-50 text-blue-900';
-    if (appt.status === 'completed') statusColor = 'border-l-4 border-purple-500 bg-purple-50 text-purple-900';
-    if (appt.status === 'noshow') statusColor = 'border-l-4 border-red-500 bg-red-50 text-red-900';
-    if (appt.status === 'cancelled') statusColor = 'border-l-4 border-slate-400 bg-slate-100 text-slate-500 opacity-60 line-through';
-    if (appt.status === 'blocked') statusColor = 'border-l-4 border-slate-500 bg-slate-200/80 text-slate-700 pattern-diagonal-lines-sm';
+    // 2. Blocked Status Override (Only for blocked slots)
+    if (appt.status === 'blocked') {
+      statusColor = 'border-l-4 border-slate-500 bg-slate-200/80 text-slate-700 pattern-diagonal-lines-sm';
+    }
+
+    // 3. Cancelled Style (Opacity/Line-through but keep category color)
+    if (appt.status === 'cancelled') {
+      statusColor += ' opacity-60';
+    }
 
     return {
       top: `${top}px`,
@@ -530,6 +564,10 @@ const CalendarPage = () => {
                                       <div className="text-xs opacity-90 truncate mt-0.5">
                                          {appt.services?.name}
                                       </div>
+                                      {/* Status Badge */}
+                                      <div className={`text-[10px] px-1.5 py-0.5 rounded-full inline-block mt-1 w-fit ${getStatusBadgeColor(appt.status)}`}>
+                                        {getStatusLabel(appt.status)}
+                                      </div>
                                    </div>
                                  )}
                                </div>
@@ -602,6 +640,10 @@ const CalendarPage = () => {
                                </div>
                                <div className="text-[10px] opacity-80 truncate leading-tight hidden md:block">
                                   {appt.services?.name}
+                               </div>
+                               {/* Status Badge */}
+                               <div className={`text-[10px] px-1.5 py-0.5 rounded-full inline-block mt-0.5 w-fit scale-90 origin-top-left ${getStatusBadgeColor(appt.status)}`}>
+                                 {getStatusLabel(appt.status)}
                                </div>
                               </>
                             )}
