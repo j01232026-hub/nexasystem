@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { walletService } from '../../lib/walletService';
+import { useAppointmentsRealtime } from '../../hooks/useAppointmentsRealtime';
 import { format, parseISO, isPast, isFuture, compareDesc, compareAsc, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { QRCodeSVG } from 'qrcode.react';
@@ -51,9 +52,8 @@ const LiffRecordsPage = () => {
   useEffect(() => {
     if (liffUser?.dbId) {
       fetchAppointments();
-      fetchWalletBalance(); // Fetch balance on initial load
+      fetchWalletBalance();
 
-      // Setup Realtime subscription for wallet changes
       const channel = supabase
         .channel(`wallet_changes:${liffUser.dbId}`)
         .on(
@@ -61,7 +61,7 @@ const LiffRecordsPage = () => {
           { event: 'INSERT', schema: 'public', table: 'transaction_ledger', filter: `user_id=eq.${liffUser.dbId}` },
           (payload) => {
             console.log('Realtime wallet change received!', payload);
-            fetchWalletBalance(); // Re-fetch balance when a new transaction occurs
+            fetchWalletBalance();
           }
         )
         .subscribe();
@@ -71,6 +71,16 @@ const LiffRecordsPage = () => {
       };
     }
   }, [liffUser]);
+
+  const handleAppointmentRealtimeUpdate = useCallback((payload) => {
+    const customerId = payload.new?.customer_id || payload.old?.customer_id;
+    if (customerId === liffUser?.dbId) {
+      console.log('🔄 [LiffRecordsPage] 收到該客戶預約變動，重新載入...');
+      fetchAppointments();
+    }
+  }, [liffUser?.dbId]);
+
+  useAppointmentsRealtime(tenantId, handleAppointmentRealtimeUpdate);
   
   useEffect(() => {
     if (tenantId) {

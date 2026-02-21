@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { useAppointmentsRealtime } from '../../hooks/useAppointmentsRealtime';
 import { 
   format, startOfToday, isSameDay, startOfMonth, endOfMonth, 
   eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth,
@@ -209,6 +210,74 @@ const LiffBookingPage = () => {
 
     fetchAvailability();
   }, [realTenantId, selectedStaff, selectedDate, staffList, isMockMode]); 
+
+  const handleRealtimeUpdate = useCallback(() => {
+    if (!isMockMode && realTenantId && selectedStaff && selectedDate) {
+      console.log('🔄 [LiffBookingPage] 收到預約變動，重新載入可用時段...');
+      const dayStart = new Date(selectedDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(selectedDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      let query = supabase
+        .from('appointments')
+        .select('start_time, end_time, staff_id')
+        .eq('tenant_id', realTenantId)
+        .neq('status', 'cancelled')
+        .gte('start_time', dayStart.toISOString())
+        .lte('start_time', dayEnd.toISOString());
+
+      if (selectedStaff.id !== 'any') {
+        query = query.eq('staff_id', selectedStaff.id);
+      }
+
+      query.then(({ data: appts, error }) => {
+        if (error) return;
+
+        const bookedSlots = new Set();
+        const checkOverlap = (slotTime, apptStart, apptEnd) => {
+          const [h, m] = slotTime.split(':').map(Number);
+          const slotStart = new Date(selectedDate);
+          slotStart.setHours(h, m, 0, 0);
+          const slotEnd = addMinutes(slotStart, 30);
+          const start = new Date(apptStart);
+          const end = new Date(apptEnd);
+          return start < slotEnd && end > slotStart;
+        };
+
+        if (selectedStaff.id !== 'any') {
+          appts.forEach(appt => {
+            allTimeSlots.forEach(slot => {
+              if (checkOverlap(slot, appt.start_time, appt.end_time)) {
+                bookedSlots.add(slot);
+              }
+            });
+          });
+        } else {
+          const realStaffCount = staffList.filter(s => !s.isAny).length;
+          if (realStaffCount > 0) {
+            const slotCounts = {};
+            appts.forEach(appt => {
+              allTimeSlots.forEach(slot => {
+                if (checkOverlap(slot, appt.start_time, appt.end_time)) {
+                  if (!slotCounts[slot]) slotCounts[slot] = new Set();
+                  slotCounts[slot].add(appt.staff_id);
+                }
+              });
+            });
+            Object.keys(slotCounts).forEach(slot => {
+              if (slotCounts[slot].size >= realStaffCount) {
+                bookedSlots.add(slot);
+              }
+            });
+          }
+        }
+        setUnavailableSlots(Array.from(bookedSlots));
+      });
+    }
+  }, [realTenantId, selectedStaff, selectedDate, staffList, isMockMode]);
+
+  useAppointmentsRealtime(realTenantId, handleRealtimeUpdate); 
 
   // Mock Data for fallback
   const mockStaff = [

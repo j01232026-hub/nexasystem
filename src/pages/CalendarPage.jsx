@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useAppointmentsRealtime } from '../hooks/useAppointmentsRealtime';
 import { format, addDays, startOfDay, endOfDay, isSameDay, parseISO, addMinutes, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, differenceInMinutes } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { CaretLeft, CaretRight, Plus, Calendar as CalendarIcon, User, Clock, CheckCircle, XCircle, Hourglass, Lock, CaretDown, Phone, CurrencyDollar, Note, CreditCard } from '@phosphor-icons/react';
@@ -170,9 +171,18 @@ const CalendarPage = () => {
   const [isTopupModalOpen, setIsTopupModalOpen] = useState(false);
   const [tenantId, setTenantId] = useState(null);
 
+  const fetchDataRef = useRef(null);
+
   useEffect(() => {
     fetchData();
   }, [selectedDate, view]);
+
+  const handleRealtimeUpdate = useCallback(() => {
+    console.log('🔄 [CalendarPage] 收到即時更新，重新載入資料...');
+    fetchData();
+  }, []);
+
+  useAppointmentsRealtime(tenantId, handleRealtimeUpdate);
 
   const fetchData = async () => {
     setLoading(true);
