@@ -685,7 +685,14 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
         
         <button
           onClick={onOpenQr}
-          className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 flex items-center justify-center text-emerald-600 hover:shadow-lg hover:scale-105 transition-all group/btn"
+          className={`w-11 h-11 rounded-xl border flex items-center justify-center hover:shadow-lg hover:scale-105 transition-all group/btn ${
+            !categoryStyle ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100 text-emerald-600' : ''
+          }`}
+          style={categoryStyle ? {
+            background: `linear-gradient(to bottom right, ${categoryStyle.hex}10, ${categoryStyle.hex}20)`,
+            borderColor: `${categoryStyle.hex}30`,
+            color: categoryStyle.hex
+          } : {}}
           title="出示付款碼"
         >
           <QrCode size={22} weight="bold" className="group-hover/btn:scale-110 transition-transform" />
