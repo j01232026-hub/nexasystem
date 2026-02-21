@@ -124,96 +124,126 @@ const LiffHomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Hero Section - 使用 sticky 定位 */}
-      <div className={`sticky top-0 z-50 bg-white transition-all duration-300 ${isCompact ? 'shadow-md rounded-b-xl' : 'rounded-b-[40px] shadow-sm'}`}>
-        {/* Decorative Background - Hide when compact */}
-        {!isCompact && (
-          <>
-            <div className="absolute top-[-50%] right-[-20%] w-[80%] h-[150%] rounded-[40%] bg-gradient-to-b from-transparent to-white opacity-20 transform rotate-12 z-0 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-            <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[80%] rounded-[100%] blur-3xl opacity-15 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-            <div className="absolute top-[20%] left-[-10%] w-[40%] h-[40%] rounded-full blur-2xl opacity-5 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-          </>
-        )}
+      <div className={`sticky top-0 z-50 bg-white transition-all duration-500 ease-out ${isCompact ? 'shadow-md rounded-b-xl' : 'rounded-b-[40px] shadow-sm'}`}>
+        {/* Decorative Background - 使用 opacity 过渡 */}
+        <div 
+          className={`absolute top-[-50%] right-[-20%] w-[80%] h-[150%] rounded-[40%] bg-gradient-to-b from-transparent to-white transform rotate-12 z-0 pointer-events-none transition-opacity duration-500 ${isCompact ? 'opacity-0' : 'opacity-20'}`} 
+          style={{ backgroundColor: themeColor }}
+        ></div>
+        <div 
+          className={`absolute top-[-10%] right-[-10%] w-[60%] h-[80%] rounded-[100%] blur-3xl pointer-events-none transition-opacity duration-500 ${isCompact ? 'opacity-0' : 'opacity-15'}`} 
+          style={{ backgroundColor: themeColor }}
+        ></div>
+        <div 
+          className={`absolute top-[20%] left-[-10%] w-[40%] h-[40%] rounded-full blur-2xl pointer-events-none transition-opacity duration-500 ${isCompact ? 'opacity-0' : 'opacity-5'}`} 
+          style={{ backgroundColor: themeColor }}
+        ></div>
         
-        {/* Glassmorphism overlay when compact */}
-        {isCompact && <div className="absolute inset-0 bg-white/80 backdrop-blur-md z-0"></div>}
+        {/* Glassmorphism overlay - 使用 opacity 过渡 */}
+        <div className={`absolute inset-0 bg-white/80 backdrop-blur-md z-0 transition-opacity duration-500 ${isCompact ? 'opacity-100' : 'opacity-0'}`}></div>
         
-        <div className={`relative z-10 transition-all duration-300 ${isCompact ? 'px-4 py-3 flex items-center justify-between' : 'p-6 pt-10 pb-12'}`}>
-          <div className={`flex items-center transition-all ${isCompact ? 'gap-3' : 'justify-between w-full mb-8'}`}>
+        <div className={`relative z-10 transition-all duration-500 ease-out ${isCompact ? 'px-4 py-3' : 'p-6 pt-10 pb-12'}`}>
+          {/* 主内容区 - 使用 flex 布局，元素始终存在但用 opacity 控制显示 */}
+          <div className="flex items-center transition-all duration-500">
             
-            {/* Compact Avatar */}
-            {isCompact && (
-              <div className="w-9 h-9 rounded-full p-0.5 shadow-sm bg-white relative shrink-0">
+            {/* Compact Avatar - 始终渲染，用 opacity 和 scale 控制 */}
+            <div 
+              className={`shrink-0 transition-all duration-500 ease-out ${isCompact ? 'opacity-100 scale-100 mr-3' : 'opacity-0 scale-75 w-0 mr-0'}`}
+            >
+              <div className="w-9 h-9 rounded-full p-0.5 shadow-sm bg-white relative">
                 <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
               </div>
-            )}
+            </div>
 
-            <div>
-              <h1 className={`font-extrabold text-gray-900 tracking-tight transition-all ${isCompact ? 'text-lg mb-0' : 'text-3xl mb-2'}`}>{greeting}，{displayName}</h1>
-              {!isCompact && (
-                liffUser && !liffUser.isRegistered ? (
+            {/* 标题区 */}
+            <div className="flex-1 min-w-0">
+              <h1 
+                className={`font-extrabold text-gray-900 tracking-tight transition-all duration-500 ease-out ${isCompact ? 'text-lg' : 'text-3xl mb-2'}`}
+              >
+                {greeting}，{displayName}
+              </h1>
+              
+              {/* 副标题 - 始终渲染，用 opacity 和 max-height 控制 */}
+              <div 
+                className={`overflow-hidden transition-all duration-500 ease-out ${isCompact ? 'max-h-0 opacity-0' : 'max-h-10 opacity-100'}`}
+              >
+                {liffUser && !liffUser.isRegistered ? (
                   <div className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold animate-pulse">
                     尚未綁定會員
                   </div>
                 ) : (
                   <p className="text-gray-500 text-base font-medium">今天想做點什麼改變呢？</p>
-                )
-              )}
+                )}
+              </div>
             </div>
 
-            {/* Normal Avatar */}
-            {!isCompact && (
+            {/* Normal Avatar - 始终渲染，用 opacity 和 scale 控制 */}
+            <div 
+              className={`shrink-0 transition-all duration-500 ease-out ${isCompact ? 'opacity-0 scale-75 w-0' : 'opacity-100 scale-100'}`}
+            >
               <div className="w-12 h-12 rounded-full p-0.5 shadow-md bg-white relative">
                 <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
                 {liffUser && liffUser.isRegistered && (
                   <div className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white w-4 h-4 rounded-full"></div>
                 )}
               </div>
-            )}
+            </div>
           </div>
           
-          {/* Compact Action Button */}
-          {isCompact && (
-            <button
-              onClick={() => navigate(`/liff/${tenantId}/booking/new`)}
-              className="px-4 py-2 rounded-full text-white font-bold text-sm shadow-md flex items-center gap-1 shrink-0 transition-transform active:scale-95"
-              style={{ background: themeColor }}
+          {/* 按钮区 - 使用绝对定位叠加，用 opacity 控制显示 */}
+          <div className="relative mt-4 transition-all duration-500">
+            {/* Compact Action Button */}
+            <div 
+              className={`transition-all duration-500 ease-out ${isCompact ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none absolute inset-0'}`}
             >
-              <CalendarPlus weight="fill" />
-              預約
-            </button>
-          )}
-
-          {/* Normal Large Button */}
-          {!isCompact && (
-            liffUser && !liffUser.isRegistered ? (
-              <button
-                onClick={() => alert('這裡將跳轉至會員註冊/綁定頁面')}
-                className="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg flex items-center justify-center space-x-2"
-                style={{ background: themeColor }}
-              >
-                <span>✨ 立即成為會員</span>
-              </button>
-            ) : (
               <button
                 onClick={() => navigate(`/liff/${tenantId}/booking/new`)}
-                className="w-full py-5 rounded-2xl text-white font-bold text-lg shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] flex items-center justify-between px-8 transform active:scale-[0.98] transition-all relative overflow-hidden group border border-white/20"
-                style={{ 
-                  background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}dd 100%)`,
-                  boxShadow: `0 15px 30px -10px ${themeColor}60` 
-                }}
+                className="w-full flex justify-end"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer pointer-events-none"></div>
-                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
-                  <CalendarPlus size={20} weight="fill" className="text-white" />
-                </div>
-                <span className="tracking-widest text-xl font-medium text-shadow-sm flex-1 text-center pl-2">立即預約</span>
-                <div className="flex items-center space-x-1 opacity-80 group-hover:translate-x-1 transition-transform">
-                  <span className="text-xs font-light tracking-wider uppercase">Book Now</span>
-                  <ArrowRight size={18} />
-                </div>
+                <span
+                  className="px-4 py-2 rounded-full text-white font-bold text-sm shadow-md flex items-center gap-1 transition-transform active:scale-95"
+                  style={{ background: themeColor }}
+                >
+                  <CalendarPlus weight="fill" />
+                  預約
+                </span>
               </button>
-            )
-          )}
+            </div>
+
+            {/* Normal Large Button */}
+            <div 
+              className={`transition-all duration-500 ease-out ${isCompact ? 'opacity-0 translate-y-4 pointer-events-none absolute inset-0' : 'opacity-100 translate-y-0'}`}
+            >
+              {liffUser && !liffUser.isRegistered ? (
+                <button
+                  onClick={() => alert('這裡將跳轉至會員註冊/綁定頁面')}
+                  className="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg flex items-center justify-center space-x-2"
+                  style={{ background: themeColor }}
+                >
+                  <span>✨ 立即成為會員</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate(`/liff/${tenantId}/booking/new`)}
+                  className="w-full py-5 rounded-2xl text-white font-bold text-lg shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] flex items-center justify-between px-8 transform active:scale-[0.98] transition-all relative overflow-hidden group border border-white/20"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}dd 100%)`,
+                    boxShadow: `0 15px 30px -10px ${themeColor}60` 
+                  }}
+                >
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer pointer-events-none"></div>
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                    <CalendarPlus size={20} weight="fill" className="text-white" />
+                  </div>
+                  <span className="tracking-widest text-xl font-medium text-shadow-sm flex-1 text-center pl-2">立即預約</span>
+                  <div className="flex items-center space-x-1 opacity-80 group-hover:translate-x-1 transition-transform">
+                    <span className="text-xs font-light tracking-wider uppercase">Book Now</span>
+                    <ArrowRight size={18} />
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       
