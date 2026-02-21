@@ -734,7 +734,7 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
         ) : (
           <button 
             className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: themeColor }}
+            style={{ backgroundColor: categoryStyle ? categoryStyle.hex : themeColor }}
           >
             聯絡店家
           </button>
@@ -791,7 +791,8 @@ const HistoryCard = ({ appt, themeColor, onRebook }) => {
 
       <button 
         onClick={onRebook}
-        className="w-full py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 flex items-center justify-center space-x-2"
+        className="w-full py-2 rounded-lg text-white text-sm font-bold shadow-md hover:opacity-90 flex items-center justify-center space-x-2 transition-opacity"
+        style={{ backgroundColor: categoryStyle ? categoryStyle.hex : themeColor }}
       >
         <Repeat size={16} />
         <span>再次預約</span>
