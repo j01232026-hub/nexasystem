@@ -669,7 +669,6 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
             </span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               isPendingDeposit ? 'bg-orange-100 text-orange-700' : 
-              categoryStyle ? categoryStyle.badge :
               appt.status === 'booked' ? 'bg-blue-100 text-blue-700' :
               appt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
               'bg-gray-100 text-gray-700'
