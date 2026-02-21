@@ -4,11 +4,20 @@ import { supabase } from '../lib/supabaseClient';
 import { X, User, Calendar, Clock, Receipt, Note, Pencil, Trash, Lock, CheckCircle, Warning, Phone, Tag, Prohibit, ArrowClockwise } from '@phosphor-icons/react';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import Modal from './ui/Modal';
 
 const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onEdit }) => {
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
   const [items, setItems] = useState([]);
+  
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
   
   useEffect(() => {
     if (isOpen) {
@@ -65,46 +74,61 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (!confirm(`確定要將狀態更改為 "${getStatusLabel(newStatus)}" 嗎？`)) return;
+    // Show confirmation modal instead of native confirm
+    setConfirmModal({
+      isOpen: true,
+      title: '確認變更',
+      message: `確定要將狀態更改為 "${getStatusLabel(newStatus)}" 嗎？`,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        
+        setLoading(true);
+        try {
+          const { error } = await supabase
+            .from('appointments')
+            .update({ status: newStatus })
+            .eq('id', appointmentId);
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: newStatus })
-        .eq('id', appointmentId);
+          if (error) throw error;
+          
+          setDetails(prev => ({ ...prev, status: newStatus }));
+          if (onUpdate) onUpdate();
 
-      if (error) throw error;
-      
-      setDetails(prev => ({ ...prev, status: newStatus }));
-      if (onUpdate) onUpdate();
-
-    } catch (error) {
-      alert('更新失敗: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+        } catch (error) {
+          alert('更新失敗: ' + error.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleDelete = async () => {
-    if (!confirm('確定要刪除此預約嗎？此操作無法復原。')) return;
+    setConfirmModal({
+      isOpen: true,
+      title: '確認刪除',
+      message: '確定要刪除此預約嗎？此操作無法復原。',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        
+        setLoading(true);
+        try {
+          const { error } = await supabase
+            .from('appointments')
+            .delete()
+            .eq('id', appointmentId);
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .delete()
-        .eq('id', appointmentId);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      if (onUpdate) onUpdate();
-      onClose();
-    } catch (error) {
-      alert('刪除失敗: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+          if (onUpdate) onUpdate();
+          onClose();
+        } catch (error) {
+          alert('刪除失敗: ' + error.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const getStatusLabel = (status) => {
@@ -412,6 +436,16 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
              </div>
         )}
       </div>
+      
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+      >
+        <div className="whitespace-pre-wrap">{confirmModal.message}</div>
+      </Modal>
     </div>,
     document.body
   );
