@@ -6,7 +6,7 @@ import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { Sparkle, CalendarPlus, Clock, ArrowRight, User, Heart } from '@phosphor-icons/react';
+import { Sparkle, CalendarPlus, Clock, ArrowRight, User, Heart, X } from '@phosphor-icons/react';
 
 const LiffHomePage = () => {
   const { themeColor } = useTheme();
@@ -16,6 +16,7 @@ const LiffHomePage = () => {
   const [galleryPosts, setGalleryPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [lightboxPost, setLightboxPost] = useState(null);
 
   useEffect(() => {
     fetchGallery();
@@ -77,6 +78,20 @@ const LiffHomePage = () => {
       setLikedPosts(newLiked);
     } catch (err) {
       console.error('Toggle like error:', err);
+    }
+  };
+
+  const handleBooking = (post) => {
+    const categoryId = post.service_categories?.id;
+    const serviceId = post.services?.id;
+    
+    if (categoryId || serviceId) {
+      const params = new URLSearchParams();
+      if (categoryId) params.append('category', categoryId);
+      if (serviceId) params.append('service', serviceId);
+      navigate(`/liff/${tenantId}/booking/new?${params.toString()}`);
+    } else {
+      navigate(`/liff/${tenantId}/booking/new`);
     }
   };
 
@@ -234,7 +249,12 @@ const LiffHomePage = () => {
           {galleryPosts.map((post) => (
             <div key={post.id} className="break-inside-avoid bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
               <div className="relative">
-                <img src={post.image_url} alt={post.title} className="w-full h-auto object-cover" />
+                <img 
+                  src={post.image_url} 
+                  alt={post.title} 
+                  className="w-full h-auto object-cover cursor-pointer"
+                  onClick={() => setLightboxPost(post)}
+                />
                 <div className="absolute top-2 right-2">
                   <button 
                     onClick={(e) => {
@@ -247,18 +267,74 @@ const LiffHomePage = () => {
                   </button>
                 </div>
               </div>
-              <div className="p-3">
-                <h3 className="font-bold text-sm text-gray-800 mb-1 line-clamp-1">{post.title || '未命名'}</h3>
-                <div className="flex items-center justify-between">
+              <div className="p-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-sm text-gray-800 mb-1 line-clamp-1">{post.title || '未命名'}</h3>
                   <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                     {post.service_categories?.name}
                   </span>
                 </div>
+                <button
+                  onClick={() => handleBooking(post)}
+                  className="ml-2 p-2 rounded-full bg-gray-900 text-white hover:bg-gray-800 transition-all flex-shrink-0"
+                  title="預約此款"
+                >
+                  <CalendarPlus size={16} weight="fill" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <button 
+            onClick={() => setLightboxPost(null)}
+            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X size={28} weight="bold" />
+          </button>
+
+          <div className="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-2xl">
+            <img 
+              src={lightboxPost.image_url} 
+              alt={lightboxPost.title} 
+              className="w-full h-auto object-cover"
+            />
+            
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900">{lightboxPost.title || '未命名'}</h3>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
+                    {lightboxPost.service_categories?.name}
+                  </span>
+                </div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike(lightboxPost.id);
+                  }}
+                  className={`p-2 rounded-full transition-all ${likedPosts.has(lightboxPost.id) ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  <Heart weight={likedPosts.has(lightboxPost.id) ? "fill" : "regular"} size={24} />
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleBooking(lightboxPost)}
+                className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                style={{ backgroundColor: themeColor }}
+              >
+                <CalendarPlus size={20} weight="fill" />
+                我要預約此款
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

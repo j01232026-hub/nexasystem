@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -17,6 +17,7 @@ import Modal from '../../components/ui/Modal';
 const LiffBookingPage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
+  const [searchParams] = useSearchParams();
   const [realTenantId, setRealTenantId] = useState(null);
   const navigate = useNavigate();
   const { liffUser } = useLiffAuth();
@@ -323,6 +324,22 @@ const LiffBookingPage = () => {
         fetchTenantSettings();
     }
   }, [realTenantId]);
+
+  // Handle URL params for pre-selected category/service
+  useEffect(() => {
+    if (!categories.length || !services.length) return;
+
+    const categoryParam = searchParams.get('category');
+    const serviceParam = searchParams.get('service');
+
+    if (categoryParam && categories.some(c => c.id === categoryParam)) {
+      setSelectedCategory(categoryParam);
+    }
+
+    if (serviceParam && services.some(s => s.id === serviceParam)) {
+      setSelectedService(services.find(s => s.id === serviceParam));
+    }
+  }, [categories, services, searchParams]);
 
   const fetchTenantSettings = async () => {
       const { data, error } = await supabase
