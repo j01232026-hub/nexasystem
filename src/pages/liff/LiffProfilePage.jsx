@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -14,15 +15,21 @@ import {
   CaretRight,
   UserCircle,
   ShareNetwork,
-  Trash
+  Trash,
+  X,
+  CalendarPlus
 } from '@phosphor-icons/react';
 
 const LiffProfilePage = () => {
   const { themeColor } = useTheme();
   const { liffUser } = useLiffAuth();
+  const { tenantId } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('appointments');
   const [collections, setCollections] = useState([]);
   const [loadingCollections, setLoadingCollections] = useState(false);
+  const [likedPosts, setLikedPosts] = useState(new Set());
+  const [lightboxPost, setLightboxPost] = useState(null);
 
   // Fetch Collections when tab is active
   useEffect(() => {
@@ -42,7 +49,8 @@ const LiffProfilePage = () => {
             id,
             image_url,
             title,
-            service_categories(name)
+            service_categories(id, name),
+            services(id, name)
           )
         `)
         .eq('user_id', liffUser.lineUserId)
@@ -53,6 +61,11 @@ const LiffProfilePage = () => {
       // Flatten data structure
       const formatted = data.map(item => item.gallery_posts).filter(post => post !== null);
       setCollections(formatted);
+      
+      // Also update likedPosts set
+      if (formatted.length > 0) {
+        setLikedPosts(new Set(formatted.map(p => p.id)));
+      }
     } catch (err) {
       console.error('Error fetching collections:', err);
     } finally {
@@ -60,19 +73,35 @@ const LiffProfilePage = () => {
     }
   };
 
-  const removeCollection = async (postId) => {
-    if (!confirm('確定要取消收藏嗎？')) return;
+  const toggleLike = async (postId) => {
+    if (!liffUser?.lineUserId) return;
+    
+    const isLiked = likedPosts.has(postId);
+    const newLiked = new Set(likedPosts);
+    
     try {
-        await supabase
-            .from('gallery_likes')
-            .delete()
-            .eq('user_id', liffUser.lineUserId)
-            .eq('post_id', postId);
-        
+      if (isLiked) {
+        newLiked.delete(postId);
+        await supabase.from('gallery_likes').delete().eq('user_id', liffUser.lineUserId).eq('post_id', postId);
         setCollections(prev => prev.filter(p => p.id !== postId));
+      }
+      setLikedPosts(newLiked);
     } catch (err) {
-        console.error('Remove failed', err);
+      console.error('Toggle like error:', err);
     }
+  };
+
+  const handleBooking = (post) => {
+    const categoryId = post.service_categories?.id;
+    const serviceId = post.services?.id;
+    
+    const params = new URLSearchParams();
+    if (categoryId) params.append('category', categoryId);
+    if (serviceId) params.append('service', serviceId);
+    if (liffUser?.displayName) params.append('name', liffUser.displayName);
+    if (liffUser?.phone) params.append('phone', liffUser.phone);
+    
+    navigate(`/liff/${tenantId}/booking/new?${params.toString()}`);
   };
 
   // Mock Data (Keep user & appointments mock for now as requested only for gallery)
@@ -262,29 +291,42 @@ const LiffProfilePage = () => {
                       <p className="text-xs mt-1">去首頁逛逛吧！</p>
                    </div>
                 ) : (
-                <div className="columns-2 gap-3 space-y-3">
+                <div className="columns-2 gap-4 space-y-4">
                     {collections.map((post) => (
-                        <div key={post.id} className="bg-white rounded-xl overflow-hidden shadow-sm break-inside-avoid relative group">
-                            <img src={post.image_url} alt="Collection" className="w-full h-auto object-cover" />
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button 
-                                    onClick={() => removeCollection(post.id)}
-                                    className="p-1 bg-black/30 backdrop-blur-md rounded-full text-white hover:bg-red-500"
-                                >
-                                    <Trash size={14} />
-                                </button>
-                            </div>
-                            <div className="p-2">
-                                <div className="text-xs font-bold text-gray-800 mb-1 line-clamp-1">{post.title || '未命名'}</div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center space-x-1">
-                                        <div className="w-4 h-4 rounded-full bg-gray-200"></div>
-                                        <span className="text-[10px] text-gray-500">{post.service_categories?.name}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-0.5 text-red-400">
-                                        <Heart size={12} weight="fill" />
-                                    </div>
+                        <div key={post.id} className="break-inside-avoid bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
+                            <div className="relative">
+                                <img 
+                                    src={post.image_url} 
+                                    alt="Collection" 
+                                    className="w-full h-auto object-cover cursor-pointer"
+                                    onClick={() => setLightboxPost(post)}
+                                />
+                                <div className="absolute top-2 right-2">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleLike(post.id);
+                                        }}
+                                        className={`p-1.5 rounded-full backdrop-blur-md transition-all ${likedPosts.has(post.id) ? 'bg-white text-red-500' : 'bg-black/20 text-white'}`}
+                                    >
+                                        <Heart weight={likedPosts.has(post.id) ? "fill" : "regular"} size={16} />
+                                    </button>
                                 </div>
+                            </div>
+                            <div className="p-3 flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-sm text-gray-800 mb-1 line-clamp-1">{post.title || '未命名'}</h3>
+                                    <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                        {post.service_categories?.name}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => handleBooking(post)}
+                                    className="ml-2 p-2 rounded-full bg-gray-900 text-white hover:bg-gray-800 transition-all flex-shrink-0"
+                                    title="預約此款"
+                                >
+                                    <CalendarPlus size={16} weight="fill" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -326,6 +368,58 @@ const LiffProfilePage = () => {
             )}
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <button 
+            onClick={() => setLightboxPost(null)}
+            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X size={28} weight="bold" />
+          </button>
+
+          <div className="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-2xl">
+            <img 
+              src={lightboxPost.image_url} 
+              alt={lightboxPost.title} 
+              className="w-full h-auto object-cover"
+            />
+            
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900">{lightboxPost.title || '未命名'}</h3>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
+                    {lightboxPost.service_categories?.name}
+                  </span>
+                </div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike(lightboxPost.id);
+                    if (likedPosts.has(lightboxPost.id)) {
+                      setLightboxPost(null);
+                    }
+                  }}
+                  className={`p-2 rounded-full transition-all ${likedPosts.has(lightboxPost.id) ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  <Heart weight={likedPosts.has(lightboxPost.id) ? "fill" : "regular"} size={24} />
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleBooking(lightboxPost)}
+                className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                style={{ backgroundColor: themeColor }}
+              >
+                <CalendarPlus size={20} weight="fill" />
+                我要預約此款
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
