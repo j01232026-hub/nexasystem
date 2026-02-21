@@ -3,7 +3,13 @@ import { X } from '@phosphor-icons/react';
 import { useTheme } from '../../context/ThemeContext';
 
 const Modal = ({ isOpen, onClose, onConfirm, title, children, showLogo = false, logoSrc = '/logo.png' }) => {
-  const { themeColor } = useTheme();
+  let themeColor = '#ec4899'; // Default fallback color
+  try {
+    const theme = useTheme();
+    themeColor = theme?.themeColor || '#ec4899';
+  } catch (e) {
+    // ThemeContext not available, use default
+  }
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
