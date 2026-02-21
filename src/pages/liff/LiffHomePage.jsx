@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useLiffAuth } from '../../context/LiffAuthContext';
@@ -16,17 +16,35 @@ const LiffHomePage = () => {
   const [galleryPosts, setGalleryPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [isCompact, setIsCompact] = useState(false);
+  const heroRef = useRef(null);
 
   useEffect(() => {
     fetchGallery();
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, [liffUser]);
 
-  const handleScroll = () => {
-    const threshold = 100;
-    setIsCompact(window.scrollY > threshold);
-  };
+  // 使用 IntersectionObserver 检测 Hero Section 是否在视口中
+  useEffect(() => {
+    const heroElement = heroRef.current;
+    if (!heroElement) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // 当 Hero Section 离开视口时，显示 compact header
+        setIsCompact(!entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '-100px 0px 0px 0px', // 顶部 100px 边界
+        threshold: 0,
+      }
+    );
+
+    observer.observe(heroElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const fetchGallery = async () => {
     try {
@@ -147,7 +165,7 @@ const LiffHomePage = () => {
       </div>
 
       {/* Hero Section - 正常滚动 */}
-      <div className="bg-white shadow-sm rounded-b-[40px] overflow-hidden">
+      <div ref={heroRef} className="bg-white shadow-sm rounded-b-[40px] overflow-hidden">
         {/* Decorative Background */}
         <div 
           className="absolute top-[-50%] right-[-20%] w-[80%] h-[150%] rounded-[40%] bg-gradient-to-b from-transparent to-white opacity-20 transform rotate-12 z-0 pointer-events-none" 
