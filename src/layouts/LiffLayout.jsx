@@ -36,11 +36,9 @@ const LiffLayout = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto pb-20">
-        <Outlet />
-      </div>
+      <Outlet />
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50 safe-area-bottom">
