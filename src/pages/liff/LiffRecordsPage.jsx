@@ -28,6 +28,26 @@ import {
   ArrowClockwise
 } from '@phosphor-icons/react';
 
+// Category Color Map
+const CATEGORY_STYLES = {
+  rose: { border: 'border-rose-500', bg: 'bg-rose-50', text: 'text-rose-700', hex: '#f43f5e', badge: 'bg-rose-100 text-rose-700' },
+  pink: { border: 'border-pink-500', bg: 'bg-pink-50', text: 'text-pink-700', hex: '#ec4899', badge: 'bg-pink-100 text-pink-700' },
+  purple: { border: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', hex: '#a855f7', badge: 'bg-purple-100 text-purple-700' },
+  indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', hex: '#6366f1', badge: 'bg-indigo-100 text-indigo-700' },
+  blue: { border: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', hex: '#3b82f6', badge: 'bg-blue-100 text-blue-700' },
+  cyan: { border: 'border-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-700', hex: '#06b6d4', badge: 'bg-cyan-100 text-cyan-700' },
+  teal: { border: 'border-teal-500', bg: 'bg-teal-50', text: 'text-teal-700', hex: '#14b8a6', badge: 'bg-teal-100 text-teal-700' },
+  emerald: { border: 'border-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', hex: '#10b981', badge: 'bg-emerald-100 text-emerald-700' },
+  green: { border: 'border-green-500', bg: 'bg-green-50', text: 'text-green-700', hex: '#22c55e', badge: 'bg-green-100 text-green-700' },
+  lime: { border: 'border-lime-500', bg: 'bg-lime-50', text: 'text-lime-700', hex: '#84cc16', badge: 'bg-lime-100 text-lime-700' },
+  yellow: { border: 'border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-700', hex: '#eab308', badge: 'bg-yellow-100 text-yellow-700' },
+  amber: { border: 'border-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', hex: '#f59e0b', badge: 'bg-amber-100 text-amber-700' },
+  orange: { border: 'border-orange-500', bg: 'bg-orange-50', text: 'text-orange-700', hex: '#f97316', badge: 'bg-orange-100 text-orange-700' },
+  red: { border: 'border-red-500', bg: 'bg-red-50', text: 'text-red-700', hex: '#ef4444', badge: 'bg-red-100 text-red-700' },
+  slate: { border: 'border-slate-500', bg: 'bg-slate-50', text: 'text-slate-700', hex: '#64748b', badge: 'bg-slate-100 text-slate-700' },
+  gray: { border: 'border-gray-500', bg: 'bg-gray-50', text: 'text-gray-700', hex: '#6b7280', badge: 'bg-gray-100 text-gray-700' },
+};
+
 const LiffRecordsPage = () => {
   const { themeColor } = useTheme();
   const { tenantId } = useParams();
@@ -95,7 +115,7 @@ const LiffRecordsPage = () => {
         .from('appointments')
         .select(`
           *,
-          services (name, duration, price),
+          services (name, duration, price, service_categories (color)),
           staff (display_name)
         `)
         .eq('customer_id', liffUser.dbId)
@@ -627,10 +647,19 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
   const startDate = parseISO(appt.start_time);
   const isPendingDeposit = appt.status === 'pending_deposit';
   
+  // Get Category Color
+  const categoryColor = appt.services?.service_categories?.color;
+  const categoryStyle = categoryColor && CATEGORY_STYLES[categoryColor] 
+    ? CATEGORY_STYLES[categoryColor] 
+    : null;
+
+  // Determine Accent Color (Priority: Category > Pending Deposit > Theme)
+  const accentColor = categoryStyle ? categoryStyle.hex : (isPendingDeposit ? '#f97316' : themeColor);
+
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
       {/* Left Accent Bar */}
-      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: isPendingDeposit ? '#f97316' : themeColor }}></div>
+      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: accentColor }}></div>
       
       <div className="flex justify-between items-start mb-4 pl-2">
         <div>
@@ -640,6 +669,7 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
             </span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               isPendingDeposit ? 'bg-orange-100 text-orange-700' : 
+              categoryStyle ? categoryStyle.badge :
               appt.status === 'booked' ? 'bg-blue-100 text-blue-700' :
               appt.status === 'confirmed' ? 'bg-green-100 text-green-700' :
               'bg-gray-100 text-gray-700'
@@ -665,8 +695,8 @@ const UpcomingCard = ({ appt, themeColor, onCancel, onPayDeposit, onOpenQr }) =>
 
       <div className="pl-2 space-y-3 mb-5">
         <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <CalendarCheck size={16} className="text-gray-500" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${categoryStyle ? categoryStyle.bg : 'bg-gray-100'}`}>
+            <CalendarCheck size={16} className={categoryStyle ? categoryStyle.text : 'text-gray-500'} />
           </div>
           <div>
             <h3 className="font-bold text-gray-900">{appt.services?.name}</h3>
