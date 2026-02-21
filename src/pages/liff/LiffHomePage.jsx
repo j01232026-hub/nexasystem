@@ -34,7 +34,7 @@ const LiffHomePage = () => {
 
   const fetchGallery = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('gallery_posts')
         .select(`
           *,
@@ -44,6 +44,8 @@ const LiffHomePage = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       
+      console.log('Gallery posts:', data);
+      console.log('Gallery error:', error);
       setGalleryPosts(data || []);
 
       if (liffUser?.lineUserId) {
@@ -62,6 +64,9 @@ const LiffHomePage = () => {
   };
 
   const toggleLike = async (postId) => {
+    console.log('Toggle like for post:', postId);
+    console.log('Current user:', liffUser);
+    
     if (!liffUser?.lineUserId) {
       alert('請先登入會員');
       return;
@@ -74,10 +79,12 @@ const LiffHomePage = () => {
       if (isLiked) {
         newLiked.delete(postId);
         const { error } = await supabase.from('gallery_likes').delete().eq('user_id', liffUser.lineUserId).eq('post_id', postId);
+        console.log('Unlike result:', error);
         if (error) console.error('Unlike error:', error);
       } else {
         newLiked.add(postId);
         const { error } = await supabase.from('gallery_likes').insert({ user_id: liffUser.lineUserId, post_id: postId });
+        console.log('Like result:', error);
         if (error) {
           console.error('Like error:', error);
           alert('收藏失敗: ' + error.message);

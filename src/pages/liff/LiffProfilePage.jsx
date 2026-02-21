@@ -34,6 +34,8 @@ const LiffProfilePage = () => {
   const fetchCollections = async () => {
     setLoadingCollections(true);
     try {
+      console.log('Fetching collections for user:', liffUser?.lineUserId);
+      
       const { data, error } = await supabase
         .from('gallery_likes')
         .select(`
@@ -48,10 +50,14 @@ const LiffProfilePage = () => {
         .eq('user_id', liffUser.lineUserId)
         .order('created_at', { ascending: false });
 
+      console.log('Collections raw data:', data);
+      console.log('Collections error:', error);
+      
       if (error) throw error;
       
       // Flatten data structure
       const formatted = data.map(item => item.gallery_posts).filter(post => post !== null);
+      console.log('Formatted collections:', formatted);
       setCollections(formatted);
     } catch (err) {
       console.error('Error fetching collections:', err);
