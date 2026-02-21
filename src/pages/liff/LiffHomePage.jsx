@@ -15,10 +15,21 @@ const LiffHomePage = () => {
   const { liffUser, loading, error } = useLiffAuth();
   const [galleryPosts, setGalleryPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState(new Set());
+  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
 
   useEffect(() => {
     fetchGallery();
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [liffUser]);
+
+  const handleScroll = () => {
+    if (window.scrollY > 20) {
+      setIsHeaderSticky(true);
+    } else {
+      setIsHeaderSticky(false);
+    }
+  };
 
   const fetchGallery = async () => {
     try {
@@ -117,37 +128,61 @@ const LiffHomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Hero Section */}
-      <div className="relative bg-white shadow-sm overflow-hidden rounded-b-[40px] z-10">
-        {/* Decorative Background - Organic Shapes */}
-        <div className="absolute top-[-50%] right-[-20%] w-[80%] h-[150%] rounded-[40%] bg-gradient-to-b from-transparent to-white opacity-20 transform rotate-12 z-0 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[80%] rounded-[100%] blur-3xl opacity-15 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
-        <div className="absolute top-[20%] left-[-10%] w-[40%] h-[40%] rounded-full blur-2xl opacity-5 pointer-events-none" style={{ backgroundColor: themeColor }}></div>
+      <div className={`relative bg-white shadow-sm overflow-hidden transition-all duration-300 z-50 ${isHeaderSticky ? 'fixed top-0 left-0 right-0 rounded-b-xl shadow-md bg-white/90 backdrop-blur-md' : 'rounded-b-[40px]'}`}>
+        {/* Decorative Background - Organic Shapes - Hide when sticky */}
+        <div className={`absolute top-[-50%] right-[-20%] w-[80%] h-[150%] rounded-[40%] bg-gradient-to-b from-transparent to-white opacity-20 transform rotate-12 z-0 pointer-events-none transition-opacity ${isHeaderSticky ? 'opacity-0' : 'opacity-20'}`} style={{ backgroundColor: themeColor }}></div>
+        <div className={`absolute top-[-10%] right-[-10%] w-[60%] h-[80%] rounded-[100%] blur-3xl opacity-15 pointer-events-none transition-opacity ${isHeaderSticky ? 'opacity-0' : 'opacity-15'}`} style={{ backgroundColor: themeColor }}></div>
+        <div className={`absolute top-[20%] left-[-10%] w-[40%] h-[40%] rounded-full blur-2xl opacity-5 pointer-events-none transition-opacity ${isHeaderSticky ? 'opacity-0' : 'opacity-5'}`} style={{ backgroundColor: themeColor }}></div>
         
-        <div className="p-6 relative z-10 pt-10 pb-12">
-          <div className="flex justify-between items-center mb-8">
-            <div className="">
-              <div>
-                <h1 className="font-extrabold text-gray-900 tracking-tight text-3xl mb-2">{greeting}，{displayName}</h1>
-                {liffUser && !liffUser.isRegistered ? (
+        <div className={`relative z-10 transition-all ${isHeaderSticky ? 'px-4 py-3 flex items-center justify-between' : 'p-6 pt-10 pb-12'}`}>
+          <div className={`flex items-center transition-all ${isHeaderSticky ? 'gap-3' : 'justify-between w-full mb-8'}`}>
+            
+            {/* Sticky Avatar */}
+            {isHeaderSticky && (
+                <div className="w-9 h-9 rounded-full p-0.5 shadow-sm bg-white relative shrink-0">
+                  <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
+                </div>
+            )}
+
+            <div>
+              <h1 className={`font-extrabold text-gray-900 tracking-tight transition-all ${isHeaderSticky ? 'text-lg mb-0' : 'text-3xl mb-2'}`}>{greeting}，{displayName}</h1>
+              {!isHeaderSticky && (
+                liffUser && !liffUser.isRegistered ? (
                     <div className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold animate-pulse">
                         尚未綁定會員
                     </div>
                   ) : (
                     <p className="text-gray-500 text-base font-medium">今天想做點什麼改變呢？</p>
                   )
-                }
+              )}
+            </div>
+
+            {/* Normal Avatar */}
+            {!isHeaderSticky && (
+              <div className="w-12 h-12 rounded-full p-0.5 shadow-md bg-white relative">
+                   <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
+                   {liffUser && liffUser.isRegistered && (
+                      <div className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white w-4 h-4 rounded-full"></div>
+                   )}
               </div>
-            </div>
-            
-            <div className="w-12 h-12 rounded-full p-0.5 shadow-md bg-white relative">
-                 <img src={avatarUrl} alt="User" className="w-full h-full rounded-full object-cover" />
-                 {liffUser && liffUser.isRegistered && (
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white w-4 h-4 rounded-full"></div>
-                 )}
-            </div>
+            )}
           </div>
           
-          {liffUser && !liffUser.isRegistered ? (
+          {/* Sticky Action Button */}
+          {isHeaderSticky && (
+              <button
+                onClick={() => navigate(`/liff/${tenantId}/booking/new`)}
+                className="px-4 py-2 rounded-full text-white font-bold text-sm shadow-md flex items-center gap-1 shrink-0 transition-transform active:scale-95"
+                style={{ background: themeColor }}
+              >
+                <CalendarPlus weight="fill" />
+                預約
+              </button>
+          )}
+
+          {/* Normal Large Button */}
+          {!isHeaderSticky && (
+            liffUser && !liffUser.isRegistered ? (
              <button
                 onClick={() => alert('這裡將跳轉至會員註冊/綁定頁面')}
                 className="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg flex items-center justify-center space-x-2"
@@ -180,25 +215,26 @@ const LiffHomePage = () => {
               </div>
             </button>
             )
-          }
+          )}
         </div>
       </div>
       
+      {/* Spacer for sticky header */}
+      {isHeaderSticky && <div className="h-[280px]"></div>}
+      
       {/* Gallery Waterfall */}
-      <div className="p-5 pt-0">
-        <div className="sticky top-0 z-40 bg-gray-50/80 backdrop-blur-md py-4 -mx-5 px-5 border-b border-gray-100/50 transition-all">
-          <div className="flex justify-between items-center">
-            <h2 className="font-bold text-gray-900 text-lg flex items-center space-x-2">
-              <div className="p-1.5 rounded-lg bg-pink-100 text-pink-600">
-                  <Sparkle weight="fill" size={16} />
-              </div>
-              <span>美麗藝廊</span>
-            </h2>
-            <span className="text-xs font-medium text-gray-400 bg-white px-2 py-1 rounded-full shadow-sm">最新靈感</span>
-          </div>
+      <div className="p-5 pt-2">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-gray-900 text-lg flex items-center space-x-2">
+            <div className="p-1.5 rounded-lg bg-pink-100 text-pink-600">
+                <Sparkle weight="fill" size={16} />
+            </div>
+            <span>美麗藝廊</span>
+          </h2>
+          <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">最新靈感</span>
         </div>
 
-        <div className="columns-2 gap-4 space-y-4 pt-2">
+        <div className="columns-2 gap-4 space-y-4">
           {galleryPosts.map((post) => (
             <div key={post.id} className="break-inside-avoid bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group">
               <div className="relative">
