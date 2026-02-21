@@ -749,8 +749,17 @@ const HistoryCard = ({ appt, themeColor, onRebook }) => {
   const isCompleted = appt.status === 'completed';
   const isCancelled = appt.status === 'cancelled';
   
+  // Get Category Color
+  const categoryColor = appt.services?.service_categories?.color;
+  const categoryStyle = categoryColor && CATEGORY_STYLES[categoryColor] 
+    ? CATEGORY_STYLES[categoryColor] 
+    : null;
+
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 pl-6 opacity-80 hover:opacity-100 transition-opacity">
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 pl-6 opacity-80 hover:opacity-100 transition-opacity relative overflow-hidden">
+      {/* Left Accent Bar (Optional for History) */}
+      <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: categoryStyle ? categoryStyle.hex : '#e5e7eb' }}></div>
+
       <div className="flex justify-between items-center mb-3">
         <span className="text-xs font-medium text-gray-400">
           {format(startDate, 'yyyy年M月d日', { locale: zhTW })}
@@ -769,9 +778,14 @@ const HistoryCard = ({ appt, themeColor, onRebook }) => {
       </div>
 
       <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="font-bold text-gray-800 text-lg">{appt.services?.name}</h3>
-          <p className="text-xs text-gray-400">服務人員：{appt.staff?.display_name}</p>
+        <div className="flex items-start space-x-3">
+           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${categoryStyle ? categoryStyle.bg : 'bg-gray-100'}`}>
+             <CalendarCheck size={16} className={categoryStyle ? categoryStyle.text : 'text-gray-500'} />
+           </div>
+           <div>
+             <h3 className="font-bold text-gray-800 text-lg">{appt.services?.name}</h3>
+             <p className="text-xs text-gray-400">服務人員：{appt.staff?.display_name}</p>
+           </div>
         </div>
       </div>
 
