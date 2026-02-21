@@ -367,16 +367,16 @@ const AppointmentDetailsModal = ({ isOpen, onClose, appointmentId, onUpdate, onE
                     <>
                         <button 
                             onClick={() => handleStatusChange('completed')}
-                            className={`bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'completed' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            disabled={details.status === 'completed'}
+                            className={`bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'completed' || details.status === 'noshow' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={details.status === 'completed' || details.status === 'noshow'}
                         >
                             <CheckCircle size={18} weight="bold" />
                             {details.status === 'completed' ? '已完成' : '完成服務'}
                         </button>
                         <button 
                             onClick={() => handleStatusChange('noshow')}
-                            className={`bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'noshow' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            disabled={details.status === 'noshow'}
+                            className={`bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${details.status === 'noshow' || details.status === 'completed' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={details.status === 'noshow' || details.status === 'completed'}
                         >
                             <Warning size={18} weight="bold" />
                             {details.status === 'noshow' ? 'NoShow' : 'NoShow'}
