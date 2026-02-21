@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X } from '@phosphor-icons/react';
 import { useTheme } from '../../context/ThemeContext';
 
-const Modal = ({ isOpen, onClose, title, children, showLogo = false, logoSrc = '/logo.png' }) => {
+const Modal = ({ isOpen, onClose, onConfirm, title, children, showLogo = false, logoSrc = '/logo.png' }) => {
   const { themeColor } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -19,6 +19,14 @@ const Modal = ({ isOpen, onClose, title, children, showLogo = false, logoSrc = '
   }, [isOpen]);
 
   if (!isVisible && !isOpen) return null;
+
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    } else {
+      onClose();
+    }
+  };
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
@@ -69,7 +77,7 @@ const Modal = ({ isOpen, onClose, title, children, showLogo = false, logoSrc = '
 
         {/* Footer / Action */}
         <button
-          onClick={onClose}
+          onClick={handleConfirm}
           className="w-full py-3.5 rounded-xl text-white font-bold text-lg shadow-lg active:scale-95 transition-all"
           style={{ backgroundColor: themeColor }}
         >

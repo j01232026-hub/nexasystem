@@ -27,15 +27,24 @@ const LiffBookingPage = () => {
     isOpen: false,
     title: '',
     message: '',
-    showLogo: false
+    showLogo: false,
+    onConfirm: null
   });
 
-  const showModal = (title, message, showLogo = false) => {
-      setModalConfig({ isOpen: true, title, message, showLogo });
+  const showModal = (title, message, showLogo = false, onConfirm = null) => {
+      setModalConfig({ isOpen: true, title, message, showLogo, onConfirm });
   };
 
   const closeModal = () => {
       setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleModalConfirm = () => {
+      const onConfirm = modalConfig.onConfirm;
+      closeModal();
+      if (onConfirm) {
+          onConfirm();
+      }
   };
 
   // State
@@ -648,14 +657,12 @@ const LiffBookingPage = () => {
                showModal(
                    '預約保留中', 
                    `您的預約時段屬於熱門時段，需預付訂金 $${depositAmount} 才能保留。\n\n請匯款至：\n${depositConfig.bank_info}\n\n請於 24 小時內完成匯款，逾期將自動取消。`, 
-                   true
+                   true,
+                   () => navigate(`/liff/${tenantId}/records`)
                );
            } else {
-               showModal('預約成功', '您的預約已確認！', true);
+               showModal('預約成功', '您的預約已確認！', true, () => navigate(`/liff/${tenantId}/records`));
            }
-           
-           // In real LIFF, might close window or redirect
-           setTimeout(() => navigate(`/liff/${tenantId}/records`), depositRequired ? 5000 : 2000);
            
       } catch (error) {
           console.error(error);
@@ -670,6 +677,7 @@ const LiffBookingPage = () => {
       <Modal 
           isOpen={modalConfig.isOpen}
           onClose={closeModal}
+          onConfirm={modalConfig.onConfirm || closeModal}
           title={modalConfig.title}
           showLogo={modalConfig.showLogo}
       >
