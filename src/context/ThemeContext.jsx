@@ -15,6 +15,11 @@ export const THEME_PRESETS = [
   { name: 'Slate', color: '#64748B' },
 ];
 
+const TENANT_MAPPING = {
+  'demo': '074fe7e8-7881-447d-81eb-9faa638d2270',
+  'nexa-demo-dev': '074fe7e8-7881-447d-81eb-9faa638d2270'
+};
+
 export function ThemeProvider({ children, tenantId }) {
   const [themeColor, setThemeColor] = useState(THEME_PRESETS[0].color);
   
@@ -26,10 +31,31 @@ export function ThemeProvider({ children, tenantId }) {
 
   const loadTenantTheme = async (tid) => {
     try {
+      let tenantUuid = tid;
+      
+      // Check if it's a slug instead of UUID
+      if (TENANT_MAPPING[tid]) {
+        tenantUuid = TENANT_MAPPING[tid];
+      } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tid)) {
+        // It's a slug, resolve to UUID
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('slug', tid)
+          .maybeSingle();
+        
+        if (tenant) {
+          tenantUuid = tenant.id;
+        } else {
+          console.warn('Tenant not found for slug:', tid);
+          return;
+        }
+      }
+      
       const { data, error } = await supabase
         .from('tenants')
         .select('theme_color')
-        .eq('id', tid)
+        .eq('id', tenantUuid)
         .single();
         
       if (data && data.theme_color) {

@@ -327,19 +327,12 @@ const LiffBookingPage = () => {
 
   // Handle URL params for pre-selected category/service
   useEffect(() => {
-    console.log('URL params:', Object.fromEntries(searchParams));
-    console.log('Categories:', categories);
-    console.log('Services:', services);
-    
     if (!categories.length || !services.length) return;
 
     const categoryParam = searchParams.get('category');
     const serviceParam = searchParams.get('service');
     const nameParam = searchParams.get('name');
     const phoneParam = searchParams.get('phone');
-
-    console.log('Category param:', categoryParam);
-    console.log('Service param:', serviceParam);
 
     if (categoryParam && categories.some(c => c.id === categoryParam)) {
       setSelectedCategory(categoryParam);

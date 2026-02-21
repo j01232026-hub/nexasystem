@@ -73,10 +73,16 @@ const LiffHomePage = () => {
     try {
       if (isLiked) {
         newLiked.delete(postId);
-        await supabase.from('gallery_likes').delete().eq('user_id', liffUser.lineUserId).eq('post_id', postId);
+        const { error } = await supabase.from('gallery_likes').delete().eq('user_id', liffUser.lineUserId).eq('post_id', postId);
+        if (error) console.error('Unlike error:', error);
       } else {
         newLiked.add(postId);
-        await supabase.from('gallery_likes').insert({ user_id: liffUser.lineUserId, post_id: postId });
+        const { error } = await supabase.from('gallery_likes').insert({ user_id: liffUser.lineUserId, post_id: postId });
+        if (error) {
+          console.error('Like error:', error);
+          alert('收藏失敗: ' + error.message);
+          return;
+        }
       }
       setLikedPosts(newLiked);
     } catch (err) {
@@ -86,10 +92,8 @@ const LiffHomePage = () => {
   };
 
   const handleBooking = (post) => {
-    console.log('Post data for booking:', post);
     const categoryId = post.service_categories?.id;
     const serviceId = post.services?.id;
-    console.log('Category ID:', categoryId, 'Service ID:', serviceId);
     
     const params = new URLSearchParams();
     if (categoryId) params.append('category', categoryId);
