@@ -46,11 +46,11 @@ const LiffHomePage = () => {
       
       setGalleryPosts(data || []);
 
-      if (liffUser?.userId) {
+      if (liffUser?.lineUserId) {
         const { data: likes } = await supabase
           .from('gallery_likes')
           .select('post_id')
-          .eq('user_id', liffUser.userId);
+          .eq('user_id', liffUser.lineUserId);
         
         if (likes) {
           setLikedPosts(new Set(likes.map(l => l.post_id)));
@@ -62,7 +62,10 @@ const LiffHomePage = () => {
   };
 
   const toggleLike = async (postId) => {
-    if (!liffUser?.userId) return; // Should prompt login in real app
+    if (!liffUser?.lineUserId) {
+      alert('請先登入會員');
+      return;
+    }
 
     const isLiked = likedPosts.has(postId);
     const newLiked = new Set(likedPosts);
@@ -70,14 +73,15 @@ const LiffHomePage = () => {
     try {
       if (isLiked) {
         newLiked.delete(postId);
-        await supabase.from('gallery_likes').delete().eq('user_id', liffUser.userId).eq('post_id', postId);
+        await supabase.from('gallery_likes').delete().eq('user_id', liffUser.lineUserId).eq('post_id', postId);
       } else {
         newLiked.add(postId);
-        await supabase.from('gallery_likes').insert({ user_id: liffUser.userId, post_id: postId });
+        await supabase.from('gallery_likes').insert({ user_id: liffUser.lineUserId, post_id: postId });
       }
       setLikedPosts(newLiked);
     } catch (err) {
       console.error('Toggle like error:', err);
+      alert('收藏失敗，請稍後再試');
     }
   };
 
@@ -85,14 +89,13 @@ const LiffHomePage = () => {
     const categoryId = post.service_categories?.id;
     const serviceId = post.services?.id;
     
-    if (categoryId || serviceId) {
-      const params = new URLSearchParams();
-      if (categoryId) params.append('category', categoryId);
-      if (serviceId) params.append('service', serviceId);
-      navigate(`/liff/${tenantId}/booking/new?${params.toString()}`);
-    } else {
-      navigate(`/liff/${tenantId}/booking/new`);
-    }
+    const params = new URLSearchParams();
+    if (categoryId) params.append('category', categoryId);
+    if (serviceId) params.append('service', serviceId);
+    if (liffUser?.displayName) params.append('name', liffUser.displayName);
+    if (liffUser?.phone) params.append('phone', liffUser.phone);
+    
+    navigate(`/liff/${tenantId}/booking/new?${params.toString()}`);
   };
 
   // Redirect to registration if not registered

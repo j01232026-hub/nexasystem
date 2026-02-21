@@ -45,7 +45,7 @@ const LiffProfilePage = () => {
             service_categories(name)
           )
         `)
-        .eq('user_id', liffUser.userId)
+        .eq('user_id', liffUser.lineUserId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -66,7 +66,7 @@ const LiffProfilePage = () => {
         await supabase
             .from('gallery_likes')
             .delete()
-            .eq('user_id', liffUser.userId)
+            .eq('user_id', liffUser.lineUserId)
             .eq('post_id', postId);
         
         setCollections(prev => prev.filter(p => p.id !== postId));

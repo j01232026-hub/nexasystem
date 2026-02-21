@@ -331,6 +331,8 @@ const LiffBookingPage = () => {
 
     const categoryParam = searchParams.get('category');
     const serviceParam = searchParams.get('service');
+    const nameParam = searchParams.get('name');
+    const phoneParam = searchParams.get('phone');
 
     if (categoryParam && categories.some(c => c.id === categoryParam)) {
       setSelectedCategory(categoryParam);
@@ -338,6 +340,13 @@ const LiffBookingPage = () => {
 
     if (serviceParam && services.some(s => s.id === serviceParam)) {
       setSelectedService(services.find(s => s.id === serviceParam));
+    }
+
+    if (nameParam) {
+      setCustomerName(nameParam);
+    }
+    if (phoneParam) {
+      setCustomerPhone(phoneParam);
     }
   }, [categories, services, searchParams]);
 
