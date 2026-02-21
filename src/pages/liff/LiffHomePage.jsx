@@ -38,8 +38,8 @@ const LiffHomePage = () => {
         .from('gallery_posts')
         .select(`
           *,
-          service_categories(name),
-          services(name)
+          service_categories(id, name),
+          services(id, name)
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -86,8 +86,10 @@ const LiffHomePage = () => {
   };
 
   const handleBooking = (post) => {
+    console.log('Post data for booking:', post);
     const categoryId = post.service_categories?.id;
     const serviceId = post.services?.id;
+    console.log('Category ID:', categoryId, 'Service ID:', serviceId);
     
     const params = new URLSearchParams();
     if (categoryId) params.append('category', categoryId);
