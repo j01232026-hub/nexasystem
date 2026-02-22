@@ -97,6 +97,16 @@ BEGIN
         ALTER TABLE staff ADD COLUMN IF NOT EXISTS joined_at timestamptz;
         ALTER TABLE staff ADD COLUMN IF NOT EXISTS invite_token text;
         ALTER TABLE staff ADD COLUMN IF NOT EXISTS invite_expires_at timestamptz;
+        ALTER TABLE staff ADD COLUMN IF NOT EXISTS job_title text DEFAULT '美容師';
+        ALTER TABLE staff ADD COLUMN IF NOT EXISTS specialties text[];
+        -- 將舊的 name 欄位改為 full_name（如果存在）
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name = 'staff' AND column_name = 'name') THEN
+                ALTER TABLE staff RENAME COLUMN name TO full_name;
+            END IF;
+        END $$;
     END IF;
 END $$;
 
