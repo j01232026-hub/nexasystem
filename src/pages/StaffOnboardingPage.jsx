@@ -73,11 +73,23 @@ const StaffOnboardingPage = () => {
       
       setStaffData(staff);
       
-      // 3. 如果資料已完整，直接導向首頁
-      if (staff.phone && staff.job_title) {
+      // 3. 檢查 profile 是否存在
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authUser.id)
+        .single();
+      
+      console.log('Onboarding - Profile check:', { profile, profileError });
+      
+      // 4. 如果 staff 資料完整且 profile 也存在，才導向首頁
+      if (staff.phone && staff.job_title && profile) {
+        console.log('Onboarding - Data complete, redirecting to home');
         navigate('/home');
         return;
       }
+      
+      console.log('Onboarding - Data incomplete, staying on page');
       
       // 4. 預填表單
       setFormData({
