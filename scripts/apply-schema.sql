@@ -157,7 +157,7 @@ BEGIN
     
     -- 為每個沒有 staff 記錄的 profile 創建 staff 記錄
     FOR profile_record IN 
-        SELECT p.id, p.tenant_id, p.name, p.phone
+        SELECT p.id, p.tenant_id, p.full_name, p.phone
         FROM profiles p
         LEFT JOIN staff s ON s.user_id = p.id
         WHERE s.id IS NULL AND p.tenant_id IS NOT NULL
@@ -165,7 +165,7 @@ BEGIN
         INSERT INTO staff (
             tenant_id,
             user_id,
-            name,
+            full_name,
             phone,
             email,
             role_id,
@@ -175,7 +175,7 @@ BEGIN
         SELECT 
             profile_record.tenant_id,
             profile_record.id,
-            COALESCE(profile_record.name, '管理者'),
+            COALESCE(profile_record.full_name, '管理者'),
             profile_record.phone,
             u.email,
             admin_role_id,
