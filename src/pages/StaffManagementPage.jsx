@@ -29,6 +29,7 @@ const StaffManagementPage = () => {
     display_name: '',
     role_id: '',
     email: '',
+    phone: '',
     bio: '',
     selectedServices: []
   });
@@ -160,9 +161,9 @@ const StaffManagementPage = () => {
           tenant_id: profile.tenant_id,
           full_name: formData.full_name,
           display_name: formData.display_name || formData.full_name,
-          name: formData.full_name,
           role_id: formData.role_id,
           email: formData.email,
+          phone: formData.phone,
           bio: formData.bio,
           is_active: true
         }])
@@ -187,7 +188,7 @@ const StaffManagementPage = () => {
 
       // 4. Reset and Refresh
       setIsModalOpen(false);
-      setFormData({ full_name: '', display_name: '', role_id: roles[0]?.id, email: '', bio: '', selectedServices: [] });
+      setFormData({ full_name: '', display_name: '', role_id: roles[0]?.id, email: '', phone: '', bio: '', selectedServices: [] });
       fetchData();
       
     } catch (err) {
@@ -451,13 +452,21 @@ const StaffManagementPage = () => {
                     </PermissionGuard>
                   </div>
                   
-                  {/* Email */}
-                  {staff.email && (
-                    <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                      <Envelope className="w-3 h-3" />
-                      {staff.email}
-                    </div>
-                  )}
+                  {/* Contact Info */}
+                  <div className="space-y-1 mb-2">
+                    {staff.email && (
+                      <div className="text-xs text-slate-500 flex items-center gap-1">
+                        <Envelope className="w-3 h-3" />
+                        {staff.email}
+                      </div>
+                    )}
+                    {staff.phone && (
+                      <div className="text-xs text-slate-500 flex items-center gap-1">
+                        <span className="w-3 h-3 flex items-center justify-center text-[10px]">📞</span>
+                        {staff.phone}
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Skills / Services */}
                   <div className="mt-3 pt-3 border-t border-slate-100">
@@ -543,16 +552,29 @@ const StaffManagementPage = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Email (選填)</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="用於接收通知"
-                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Email (選填)</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="用於接收通知"
+                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">電話 (選填)</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="0912-345-678"
+                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  />
+                </div>
               </div>
 
               <div>

@@ -63,6 +63,8 @@ BEGIN
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS joined_at timestamptz;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS invite_token text;
     ALTER TABLE staff ADD COLUMN IF NOT EXISTS invite_expires_at timestamptz;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone text;
+    ALTER TABLE staff ADD COLUMN IF NOT EXISTS email text;
 END $$;
 
 -- 3. 操作日誌表
@@ -151,6 +153,7 @@ DO $$
 DECLARE
     admin_role_id uuid;
     profile_record RECORD;
+    user_email text;
 BEGIN
     -- 取得 admin 角色的 ID
     SELECT id INTO admin_role_id FROM roles WHERE name = 'admin';
@@ -162,11 +165,16 @@ BEGIN
         LEFT JOIN staff s ON s.user_id = p.id
         WHERE s.id IS NULL AND p.tenant_id IS NOT NULL
     LOOP
+        -- 取得用戶 email
+        SELECT email INTO user_email FROM auth.users WHERE id = profile_record.id;
+        
         INSERT INTO staff (
             tenant_id,
             user_id,
             full_name,
             display_name,
+            phone,
+            email,
             role_id,
             is_active,
             joined_at
@@ -176,6 +184,8 @@ BEGIN
             profile_record.id,
             COALESCE(profile_record.full_name, '管理者'),
             COALESCE(profile_record.full_name, '管理者'),
+            profile_record.phone,
+            user_email,
             admin_role_id,
             true,
             now()
