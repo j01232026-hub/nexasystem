@@ -23,18 +23,7 @@ const StaffManagementPage = () => {
   const [error, setError] = useState(null);
 
   // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    display_name: '',
-    role_id: '',
-    email: '',
-    phone: '',
-    bio: '',
-    selectedServices: []
-  });
-  const [submitLoading, setSubmitLoading] = useState(false);
   
   // Invite State
   const [inviteForm, setInviteForm] = useState({
@@ -114,92 +103,12 @@ const StaffManagementPage = () => {
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const handleInviteInputChange = (e) => {
     const { name, value } = e.target;
     setInviteForm(prev => ({
       ...prev,
       [name]: value
     }));
-  };
-
-  const toggleServiceSelection = (serviceId) => {
-    setFormData(prev => {
-      const current = prev.selectedServices;
-      if (current.includes(serviceId)) {
-        return { ...prev, selectedServices: current.filter(id => id !== serviceId) };
-      } else {
-        return { ...prev, selectedServices: [...current, serviceId] };
-      }
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitLoading(true);
-    try {
-      // 1. Get current user & tenant
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('Profile not found');
-
-      // 2. Insert Staff
-      const { data: newStaff, error: insertError } = await supabase
-        .from('staff')
-        .insert([{
-          tenant_id: profile.tenant_id,
-          full_name: formData.full_name,
-          display_name: formData.display_name || formData.full_name,
-          role_id: formData.role_id,
-          email: formData.email,
-          phone: formData.phone,
-          bio: formData.bio,
-          is_active: true
-        }])
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // 3. Insert Staff Services (Skills Binding)
-      if (formData.selectedServices.length > 0) {
-        const serviceLinks = formData.selectedServices.map(serviceId => ({
-          staff_id: newStaff.id,
-          service_id: serviceId
-        }));
-
-        const { error: linkError } = await supabase
-          .from('staff_services')
-          .insert(serviceLinks);
-
-        if (linkError) throw linkError;
-      }
-
-      // 4. Reset and Refresh
-      setIsModalOpen(false);
-      setFormData({ full_name: '', display_name: '', role_id: roles[0]?.id, email: '', phone: '', bio: '', selectedServices: [] });
-      fetchData();
-      
-    } catch (err) {
-      console.error('Error creating staff:', err);
-      alert('新增失敗: ' + err.message);
-    } finally {
-      setSubmitLoading(false);
-    }
   };
 
   // 發送邀請
@@ -409,24 +318,14 @@ const StaffManagementPage = () => {
               <p className="text-xs sm:text-sm text-slate-500">管理員工資料、角色權限與系統訪問</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <button 
-              onClick={() => setIsInviteModalOpen(true)}
-              className="flex items-center justify-center space-x-1 sm:space-x-2 bg-white hover:bg-slate-50 text-slate-700 px-3 sm:px-4 py-2 rounded-lg transition-colors shadow-md border border-slate-200 text-sm sm:text-base"
-            >
-              <Envelope className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />
-              <span className="hidden sm:inline">邀請員工</span>
-              <span className="sm:hidden">邀請</span>
-            </button>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center justify-center space-x-1 sm:space-x-2 bg-rose-500 hover:bg-rose-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors shadow-lg shadow-rose-200 text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">新增員工</span>
-              <span className="sm:hidden">新增</span>
-            </button>
-          </div>
+          <button 
+            onClick={() => setIsInviteModalOpen(true)}
+            className="flex items-center justify-center space-x-1 sm:space-x-2 bg-rose-500 hover:bg-rose-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors shadow-lg shadow-rose-200 text-sm sm:text-base"
+          >
+            <Envelope className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">邀請員工</span>
+            <span className="sm:hidden">邀請</span>
+          </button>
         </div>
 
         {/* Role Legend */}
@@ -460,22 +359,13 @@ const StaffManagementPage = () => {
             <div className="flex flex-col justify-center items-center h-64 text-slate-400 space-y-4">
               <User className="w-16 h-16 text-slate-200" />
               <p>目前沒有員工資料</p>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setIsInviteModalOpen(true)} 
-                  className="text-rose-500 hover:underline flex items-center gap-1"
-                >
-                  <Envelope className="w-4 h-4" />
-                  邀請員工加入
-                </button>
-                <span className="text-slate-300">|</span>
-                <button 
-                  onClick={() => setIsModalOpen(true)} 
-                  className="text-rose-500 hover:underline"
-                >
-                  手動新增員工
-                </button>
-              </div>
+              <button 
+                onClick={() => setIsInviteModalOpen(true)} 
+                className="text-rose-500 hover:underline flex items-center gap-1"
+              >
+                <Envelope className="w-4 h-4" />
+                邀請員工加入
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-2 sm:p-4">
@@ -566,149 +456,6 @@ const StaffManagementPage = () => {
           )}
         </GlassPanel>
       </div>
-
-      {/* Add Staff Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-fade-in-up max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-slate-100 flex-shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">新增員工</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-500">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">真實姓名 *</label>
-                  <input
-                    type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="如：王小明"
-                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">C 端暱稱 (選填)</label>
-                  <input
-                    type="text"
-                    name="display_name"
-                    value={formData.display_name}
-                    onChange={handleInputChange}
-                    placeholder="如：Ken 老師"
-                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email (選填)</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="用於接收通知"
-                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">電話 (選填)</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="0912-345-678"
-                    className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">系統角色 *</label>
-                <select
-                  name="role_id"
-                  value={formData.role_id}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                >
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>
-                      {role.display_name} - {role.description}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-slate-400 mt-1">
-                  角色決定員工在系統中的權限範圍
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">可執行服務項目</label>
-                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                  {services.map(service => (
-                    <label key={service.id} className="flex items-center space-x-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={formData.selectedServices.includes(service.id)}
-                        onChange={() => toggleServiceSelection(service.id)}
-                        className="rounded border-slate-300 text-rose-500 focus:ring-rose-500"
-                      />
-                      <span className="text-sm text-slate-700">{service.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">個人簡介 (選填)</label>
-                <textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleInputChange}
-                  rows={3}
-                  placeholder="介紹這位員工的專長..."
-                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
-                />
-              </div>
-            </form>
-
-            <div className="p-4 border-t border-slate-100 flex justify-end space-x-3 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitLoading || !formData.full_name}
-                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {submitLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>儲存中...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>確認新增</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Invite Staff Modal */}
       {isInviteModalOpen && (
