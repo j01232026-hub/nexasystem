@@ -12,6 +12,7 @@ import ServiceManagementPage from './pages/ServiceManagementPage'
 import StaffManagementPage from './pages/StaffManagementPage'
 import GalleryManagementPage from './pages/GalleryManagementPage'
 import InvitePage from './pages/InvitePage'
+import StaffOnboardingPage from './pages/StaffOnboardingPage'
 
 // LIFF Pages
 import LiffRoot from './pages/liff/LiffRoot'
@@ -44,6 +45,7 @@ function App() {
       <Route path="/staff" element={<StaffManagementPage />} />
       <Route path="/admin/gallery" element={<GalleryManagementPage />} />
       <Route path="/invite" element={<InvitePage />} />
+      <Route path="/staff-onboarding" element={<StaffOnboardingPage />} />
 
       {/* LIFF Routes (C-Side) */}
       <Route path="/liff/:tenantId" element={<LiffRoot />}>

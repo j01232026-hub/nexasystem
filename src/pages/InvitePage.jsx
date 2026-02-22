@@ -134,10 +134,10 @@ const InvitePage = () => {
 
       setSuccess(true);
       
-      // Auto redirect after 3 seconds
+      // Auto redirect after 2 seconds to staff onboarding page
       setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+        navigate('/staff-onboarding');
+      }, 2000);
       
     } catch (err) {
       console.error('Error completing invite:', err);
