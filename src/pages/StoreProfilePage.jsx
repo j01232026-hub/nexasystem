@@ -726,11 +726,11 @@ const StoreProfilePage = () => {
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-bold text-slate-800">總店員工列表</h3>
                             <button 
-                                onClick={() => alert('新增員工功能開發中')}
+                                onClick={() => navigate('/staff')}
                                 className="text-sm font-semibold text-rose-500 hover:text-rose-600 flex items-center bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors"
                             >
                                 <Plus className="w-4 h-4 mr-1.5" />
-                                新增員工
+                                管理員工
                             </button>
                         </div>
 
@@ -820,11 +820,11 @@ const StoreProfilePage = () => {
                             <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">分店員工</span>
                                 <button 
-                                    onClick={() => alert('新增分店員工功能開發中 (將導向員工管理頁面)')}
+                                    onClick={() => navigate('/staff')}
                                     className="text-sm font-semibold text-rose-500 hover:text-rose-600 flex items-center bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors"
                                 >
                                     <Plus className="w-4 h-4 mr-1.5" />
-                                    新增員工
+                                    管理員工
                                 </button>
                             </div>
                         </div>
