@@ -59,11 +59,39 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+      
+      const user = data.user;
+      if (!user) {
+        throw new Error('登入失敗，請重試');
+      }
+      
+      // 檢查用戶角色和資料完整性
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name, phone')
+        .eq('id', user.id)
+        .single();
+      
+      // 如果是員工角色，檢查是否需要完善資料
+      if (profile && profile.role === 'staff') {
+        const { data: staffData } = await supabase
+          .from('staff')
+          .select('phone, job_title')
+          .eq('user_id', user.id)
+          .single();
+        
+        // 如果員工資料不完整，導向資料完善頁面
+        if (!staffData || !staffData.phone || !staffData.job_title) {
+          navigate('/staff-onboarding');
+          return;
+        }
+      }
+      
       navigate('/home');
     } catch (error) {
       alert('登入失敗: ' + error.message);
