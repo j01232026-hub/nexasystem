@@ -83,53 +83,27 @@ const InvitePage = () => {
     setError(null);
 
     try {
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invite.email,
-        password: password,
-        options: {
-          data: {
-            name: invite.name,
-            tenant_id: invite.tenant_id
-          }
+      // Use Edge Function to create confirmed user
+      const { data, error } = await supabase.functions.invoke('invite-signup', {
+        body: {
+          email: invite.email,
+          password: password,
+          name: invite.full_name || invite.name,
+          inviteToken: token
         }
       });
 
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          setError('此 Email 已註冊，請直接登入');
-        } else {
-          throw authError;
-        }
-        return;
+      if (error) {
+        throw new Error(error.message || '註冊失敗');
       }
 
-      // 2. Update staff record
-      const { error: updateError } = await supabase
-        .from('staff')
-        .update({
-          user_id: authData.user.id,
-          joined_at: new Date().toISOString(),
-          invite_token: null,
-          invite_expires_at: null
-        })
-        .eq('id', invite.id);
-
-      if (updateError) throw updateError;
-
-      // 3. Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          tenant_id: invite.tenant_id,
-          role: invite.roles?.name || 'staff',
-          name: invite.name,
-          email: invite.email
-        });
-
-      if (profileError && !profileError.message.includes('duplicate')) {
-        console.error('Profile creation error:', profileError);
+      if (data.error) {
+        if (data.error.includes('already registered')) {
+          setError('此 Email 已註冊，請直接登入');
+        } else {
+          throw new Error(data.error);
+        }
+        return;
       }
 
       setSuccess(true);
