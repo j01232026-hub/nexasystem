@@ -14,7 +14,7 @@ import PermissionGuard from '../components/PermissionGuard';
 
 const StaffManagementPage = () => {
   const navigate = useNavigate();
-  const { can, isAdmin, staff: currentStaff } = usePermission();
+  const { can, isAdmin, staff: currentStaff, loading: permissionLoading } = usePermission();
   
   const [staffList, setStaffList] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -353,7 +353,20 @@ const StaffManagementPage = () => {
     );
   };
 
-  // 檢查權限
+  // 檢查權限 - 等待權限載入完成
+  if (permissionLoading) {
+    return (
+      <div className="bg-rose-50 min-h-screen p-6 relative overflow-hidden font-sans flex items-center justify-center">
+        <BackgroundDecoration />
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mb-4"></div>
+          <p className="text-slate-500">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 權限載入完成後檢查
   if (!can('manage_staff')) {
     return (
       <div className="bg-rose-50 min-h-screen p-6 relative overflow-hidden font-sans flex items-center justify-center">
