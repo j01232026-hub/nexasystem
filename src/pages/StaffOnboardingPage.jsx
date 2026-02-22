@@ -221,11 +221,18 @@ const StaffOnboardingPage = () => {
         
         if (profileError) throw profileError;
       } else {
-        // 創建新的 profile
+        // 創建新的 profile - 從 staffData 獲取 tenant_id
+        const tenantId = staffData?.tenant_id;
+        
+        if (!tenantId) {
+          throw new Error('無法獲取 tenant_id，請聯繫管理員');
+        }
+        
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: user.id,
+            tenant_id: tenantId,
             full_name: formData.full_name,
             phone: formData.phone,
             role: 'staff',
