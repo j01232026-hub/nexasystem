@@ -166,23 +166,20 @@ BEGIN
             tenant_id,
             user_id,
             full_name,
-            phone,
-            email,
+            display_name,
             role_id,
             is_active,
             joined_at
         )
-        SELECT 
+        VALUES (
             profile_record.tenant_id,
             profile_record.id,
             COALESCE(profile_record.full_name, '管理者'),
-            profile_record.phone,
-            u.email,
+            COALESCE(profile_record.full_name, '管理者'),
             admin_role_id,
             true,
             now()
-        FROM auth.users u
-        WHERE u.id = profile_record.id;
+        );
         
         RAISE NOTICE '已為用戶 % 創建 staff 記錄', profile_record.id;
     END LOOP;
