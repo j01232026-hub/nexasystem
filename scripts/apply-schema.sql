@@ -127,5 +127,67 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
+-- 7. 遷移現有數據（重要！）
+-- ============================================
+
+-- 7.1 為現有 staff 記錄分配 admin 角色
+DO $$
+DECLARE
+    admin_role_id uuid;
+BEGIN
+    -- 取得 admin 角色的 ID
+    SELECT id INTO admin_role_id FROM roles WHERE name = 'admin';
+    
+    -- 更新所有沒有 role_id 的 staff 記錄為 admin
+    UPDATE staff 
+    SET role_id = admin_role_id
+    WHERE role_id IS NULL;
+    
+    RAISE NOTICE '已將所有現有員工設為 admin 角色';
+END $$;
+
+-- 7.2 為現有 profiles 添加 staff 記錄（如果沒有的話）
+DO $$
+DECLARE
+    admin_role_id uuid;
+    profile_record RECORD;
+BEGIN
+    -- 取得 admin 角色的 ID
+    SELECT id INTO admin_role_id FROM roles WHERE name = 'admin';
+    
+    -- 為每個沒有 staff 記錄的 profile 創建 staff 記錄
+    FOR profile_record IN 
+        SELECT p.id, p.tenant_id, p.name, p.phone
+        FROM profiles p
+        LEFT JOIN staff s ON s.user_id = p.id
+        WHERE s.id IS NULL AND p.tenant_id IS NOT NULL
+    LOOP
+        INSERT INTO staff (
+            tenant_id,
+            user_id,
+            name,
+            phone,
+            email,
+            role_id,
+            is_active,
+            joined_at
+        )
+        SELECT 
+            profile_record.tenant_id,
+            profile_record.id,
+            COALESCE(profile_record.name, '管理者'),
+            profile_record.phone,
+            u.email,
+            admin_role_id,
+            true,
+            now()
+        FROM auth.users u
+        WHERE u.id = profile_record.id;
+        
+        RAISE NOTICE '已為用戶 % 創建 staff 記錄', profile_record.id;
+    END LOOP;
+END $$;
+
+-- ============================================
 -- 完成！
 -- ============================================
