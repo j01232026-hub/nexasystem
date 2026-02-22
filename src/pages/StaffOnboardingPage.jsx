@@ -58,8 +58,16 @@ const StaffOnboardingPage = () => {
       
       if (staffError) {
         console.error('Staff data error:', staffError);
-        // 如果沒有員工資料，可能是老闆或其他角色
-        navigate('/home');
+        // 如果沒有員工資料，可能是透過其他方式註冊的用戶
+        // 不導向首頁，而是讓用戶在這個頁面建立資料
+        // 預填表單使用 user_metadata
+        setFormData({
+          full_name: authUser.user_metadata?.name || '',
+          phone: '',
+          job_title: '美容師',
+          specialties: []
+        });
+        setLoading(false);
         return;
       }
       
@@ -135,31 +143,85 @@ const StaffOnboardingPage = () => {
     setSaving(true);
     
     try {
-      // 1. 更新 staff 表
-      const { error: staffError } = await supabase
-        .from('staff')
-        .update({
-          full_name: formData.full_name,
-          phone: formData.phone,
-          job_title: formData.job_title,
-          specialties: formData.specialties,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', staffData.id);
+      if (staffData) {
+        // 1. 更新現有 staff 記錄
+        const { error: staffError } = await supabase
+          .from('staff')
+          .update({
+            full_name: formData.full_name,
+            phone: formData.phone,
+            job_title: formData.job_title,
+            specialties: formData.specialties,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', staffData.id);
+        
+        if (staffError) throw staffError;
+      } else {
+        // 1. 創建新的 staff 記錄
+        // 需要先獲取 tenant_id 和 role_id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+        
+        const { data: role } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', 'staff')
+          .single();
+        
+        const { error: staffError } = await supabase
+          .from('staff')
+          .insert({
+            user_id: user.id,
+            tenant_id: profile?.tenant_id,
+            role_id: role?.id,
+            full_name: formData.full_name,
+            email: user.email,
+            phone: formData.phone,
+            job_title: formData.job_title,
+            specialties: formData.specialties,
+            joined_at: new Date().toISOString()
+          });
+        
+        if (staffError) throw staffError;
+      }
       
-      if (staffError) throw staffError;
-      
-      // 2. 更新 profiles 表
-      const { error: profileError } = await supabase
+      // 2. 更新或創建 profiles 表
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          phone: formData.phone,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        .select('id')
+        .eq('id', user.id)
+        .single();
       
-      if (profileError) throw profileError;
+      if (existingProfile) {
+        // 更新現有 profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.full_name,
+            phone: formData.phone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        if (profileError) throw profileError;
+      } else {
+        // 創建新的 profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            full_name: formData.full_name,
+            phone: formData.phone,
+            role: 'staff',
+            email: user.email
+          });
+        
+        if (profileError) throw profileError;
+      }
       
       setSuccess(true);
       
