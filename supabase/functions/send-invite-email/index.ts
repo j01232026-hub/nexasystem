@@ -1,10 +1,21 @@
+// @ts-nocheck
+// Edge Function for sending invite emails via Resend
+// Runs in Deno environment, not Node.js
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
-serve(async (req) => {
+interface InviteRequest {
+  email: string;
+  name: string;
+  inviteLink: string;
+  storeName: string;
+}
+
+serve(async (req: Request) => {
   try {
-    const { email, name, inviteLink, storeName } = await req.json()
+    const { email, name, inviteLink, storeName }: InviteRequest = await req.json()
 
     if (!email || !inviteLink) {
       return new Response(
@@ -63,8 +74,8 @@ serve(async (req) => {
     })
 
     if (!res.ok) {
-      const error = await res.text()
-      throw new Error(error)
+      const errorText = await res.text()
+      throw new Error(errorText)
     }
 
     const data = await res.json()
@@ -73,7 +84,7 @@ serve(async (req) => {
       JSON.stringify({ success: true, data }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
-  } catch (error) {
+  } catch (error: any) {
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
