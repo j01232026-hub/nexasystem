@@ -83,8 +83,8 @@ const LoginPage = () => {
       
       console.log('User role:', profile?.role);
       
-      // 如果是非老闆角色（員工或店長），檢查是否需要完善資料
-      if (profile && profile.role !== 'admin') {
+      // 如果沒有 profile 或是非老闆角色，都需要檢查員工資料
+      if (!profile || profile.role !== 'admin') {
         const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('phone, job_title')
@@ -97,8 +97,8 @@ const LoginPage = () => {
         
         console.log('Staff data:', staffData);
         
-        // 如果員工資料不完整，導向資料完善頁面
-        if (!staffData || !staffData.phone || !staffData.job_title) {
+        // 如果沒有 profile 或員工資料不完整，導向資料完善頁面
+        if (!profile || !staffData || !staffData.phone || !staffData.job_title) {
           console.log('Redirecting to staff-onboarding');
           navigate('/staff-onboarding');
           return;

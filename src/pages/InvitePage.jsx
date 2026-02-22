@@ -128,8 +128,25 @@ const InvitePage = () => {
           email: invite.email
         });
 
-      if (profileError && !profileError.message.includes('duplicate')) {
-        console.error('Profile creation error:', profileError);
+      if (profileError) {
+        // 如果不是重複錯誤，拋出錯誤
+        if (!profileError.message.includes('duplicate')) {
+          throw profileError;
+        }
+        // 如果是重複，嘗試更新現有 profile
+        const { error: updateProfileError } = await supabase
+          .from('profiles')
+          .update({
+            tenant_id: invite.tenant_id,
+            role: invite.roles?.name || 'staff',
+            full_name: invite.full_name || invite.name,
+            email: invite.email
+          })
+          .eq('id', authData.user.id);
+        
+        if (updateProfileError) {
+          console.error('Profile update error:', updateProfileError);
+        }
       }
 
       setSuccess(true);
