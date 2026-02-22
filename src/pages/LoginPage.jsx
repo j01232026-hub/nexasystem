@@ -84,21 +84,34 @@ const LoginPage = () => {
       console.log('User role:', profile?.role);
       
       // 如果沒有 profile 或是非老闆角色，都需要檢查員工資料
+      console.log('Checking staff data for non-admin user...');
+      console.log('Profile exists:', !!profile);
+      console.log('Profile role:', profile?.role);
+      
       if (!profile || profile.role !== 'admin') {
+        console.log('Fetching staff data...');
         const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('phone, job_title')
           .eq('user_id', user.id)
           .single();
         
+        console.log('Staff query result:', { staffData, staffError });
+        
         if (staffError) {
           console.error('Staff fetch error:', staffError);
         }
         
-        console.log('Staff data:', staffData);
+        // 檢查條件
+        const shouldRedirect = !profile || !staffData || !staffData?.phone || !staffData?.job_title;
+        console.log('Should redirect to onboarding:', shouldRedirect);
+        console.log('  - !profile:', !profile);
+        console.log('  - !staffData:', !staffData);
+        console.log('  - !staffData?.phone:', !staffData?.phone);
+        console.log('  - !staffData?.job_title:', !staffData?.job_title);
         
         // 如果沒有 profile 或員工資料不完整，導向資料完善頁面
-        if (!profile || !staffData || !staffData.phone || !staffData.job_title) {
+        if (shouldRedirect) {
           console.log('Redirecting to staff-onboarding');
           navigate('/staff-onboarding');
           return;
