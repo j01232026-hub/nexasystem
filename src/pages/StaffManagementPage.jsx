@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Trash, PencilSimple, ArrowLeft, X, User, Check, 
   Envelope, Crown, UserGear, UserCircle, Copy, CheckCircle,
-  Shield, Eye
+  Shield, Eye, PaperPlaneRight, QrCode
 } from '@phosphor-icons/react';
+import { QRCodeSVG } from 'qrcode.react';
 import GlassPanel from '../components/ui/GlassPanel';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
 import { supabase } from '../lib/supabaseClient';
@@ -44,6 +45,8 @@ const StaffManagementPage = () => {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [storeName, setStoreName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -246,7 +249,36 @@ const StaffManagementPage = () => {
       const link = `${window.location.origin}/invite?token=${inviteToken}`;
       setInviteLink(link);
       
-      // 5. Reset form
+      // 5. Try to send email
+      try {
+        const { data: storeData } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', profile.tenant_id)
+          .single();
+        
+        const storeNameValue = storeData?.name || '店家';
+        setStoreName(storeNameValue);
+        
+        // Call edge function to send email
+        const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
+          body: {
+            email: inviteForm.email,
+            name: inviteForm.name,
+            inviteLink: link,
+            storeName: storeNameValue
+          }
+        });
+        
+        if (!emailError) {
+          setEmailSent(true);
+        }
+      } catch (emailErr) {
+        console.log('Email sending failed, user can copy link:', emailErr);
+        setEmailSent(false);
+      }
+      
+      // 6. Reset form
       setInviteForm({ name: '', email: '', role_id: roles[0]?.id });
       fetchData();
       
@@ -262,6 +294,11 @@ const StaffManagementPage = () => {
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const shareViaLine = () => {
+    const text = encodeURIComponent(`加入 ${storeName || '我們'} 的團隊！\n\n點擊連結完成註冊：\n${inviteLink}`);
+    window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
   };
 
   const getRoleBadge = (role) => {
@@ -746,55 +783,95 @@ const StaffManagementPage = () => {
                 </div>
               </form>
             ) : (
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-5">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle className="w-8 h-8 text-green-500" weight="bold" />
                   </div>
                   <h4 className="font-bold text-slate-800 mb-1">邀請已建立！</h4>
-                  <p className="text-sm text-slate-500">
-                    請將下方連結發送給員工
-                  </p>
+                  {emailSent ? (
+                    <p className="text-sm text-green-600 flex items-center justify-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      邀請郵件已發送至 {inviteForm.email}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      請選擇以下方式分享給員工
+                    </p>
+                  )}
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="block text-xs font-medium text-slate-500 mb-2">邀請連結（7天內有效）</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={inviteLink}
-                      readOnly
-                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                {/* QR Code */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col items-center">
+                  <label className="block text-xs font-medium text-slate-500 mb-3">掃描 QR Code 加入</label>
+                  <div className="p-3 bg-white rounded-lg shadow-sm">
+                    <QRCodeSVG 
+                      value={inviteLink} 
+                      size={160}
+                      level="M"
+                      includeMargin={true}
+                      imageSettings={{
+                        src: '/logo.png',
+                        height: 24,
+                        width: 24,
+                        excavate: true,
+                      }}
                     />
-                    <button
-                      onClick={copyInviteLink}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                        copied 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-rose-500 text-white hover:bg-rose-600'
-                      }`}
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle className="w-4 h-4" />
-                          已複製
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          複製
-                        </>
-                      )}
-                    </button>
                   </div>
+                  <p className="text-xs text-slate-400 mt-2">7 天內有效</p>
+                </div>
+
+                {/* Share Options */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={copyInviteLink}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors ${
+                      copied 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        已複製
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5" />
+                        複製連結
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={shareViaLine}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#06C755] hover:bg-[#05b34d] text-white rounded-xl font-medium transition-colors"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596l1.524 1.924c.193.242.15.596-.09.787-.192.146-.463.146-.655 0l-1.668-2.11v1.467c0 .344-.279.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.025l1.669-2.11c.192-.146.463-.146.655 0 .24.191.283.545.09.787l-1.525 1.924c.26.086.433.326.433.596zm-2.025-2.646c0 .345-.282.63-.631.63-.344 0-.626-.285-.626-.63V8.108c0-.345.282-.63.63-.63.345 0 .627.285.627.63v4.125zm-1.501 4.27c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v5.395zm-2.025-5.395c0-.345.282-.63.631-.63.344 0 .626.285.626.63v5.395c0 .344-.282.629-.631.629-.344 0-.626-.285-.626-.629V8.108zm-1.5 5.395c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v5.395zm-2.025-5.395c0-.345.282-.63.631-.63.344 0 .626.285.626.63v5.395c0 .344-.282.629-.631.629-.344 0-.626-.285-.626-.629V8.108z"/>
+                    </svg>
+                    LINE 分享
+                  </button>
+                </div>
+
+                {/* Manual Link */}
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <label className="block text-xs font-medium text-slate-500 mb-2">邀請連結</label>
+                  <input
+                    type="text"
+                    value={inviteLink}
+                    readOnly
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-600"
+                  />
                 </div>
 
                 <button
                   onClick={() => {
                     setIsInviteModalOpen(false);
                     setInviteLink(null);
+                    setEmailSent(false);
                   }}
-                  className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium"
+                  className="w-full px-4 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors font-medium"
                 >
                   完成
                 </button>
