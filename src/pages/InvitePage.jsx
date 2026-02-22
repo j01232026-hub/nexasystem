@@ -83,27 +83,53 @@ const InvitePage = () => {
     setError(null);
 
     try {
-      // Use Edge Function to create confirmed user
-      const { data, error } = await supabase.functions.invoke('invite-signup', {
-        body: {
-          email: invite.email,
-          password: password,
-          name: invite.full_name || invite.name,
-          inviteToken: token
+      // 1. Create auth user (Email confirmation is disabled in Supabase settings)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: invite.email,
+        password: password,
+        options: {
+          data: {
+            name: invite.full_name || invite.name,
+            tenant_id: invite.tenant_id
+          }
         }
       });
 
-      if (error) {
-        throw new Error(error.message || '註冊失敗');
-      }
-
-      if (data.error) {
-        if (data.error.includes('already registered')) {
+      if (authError) {
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
           setError('此 Email 已註冊，請直接登入');
         } else {
-          throw new Error(data.error);
+          throw authError;
         }
         return;
+      }
+
+      // 2. Update staff record
+      const { error: updateError } = await supabase
+        .from('staff')
+        .update({
+          user_id: authData.user.id,
+          joined_at: new Date().toISOString(),
+          invite_token: null,
+          invite_expires_at: null
+        })
+        .eq('id', invite.id);
+
+      if (updateError) throw updateError;
+
+      // 3. Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          tenant_id: invite.tenant_id,
+          role: invite.roles?.name || 'staff',
+          full_name: invite.full_name || invite.name,
+          email: invite.email
+        });
+
+      if (profileError && !profileError.message.includes('duplicate')) {
+        console.error('Profile creation error:', profileError);
       }
 
       setSuccess(true);
