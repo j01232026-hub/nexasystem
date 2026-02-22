@@ -227,7 +227,8 @@ const StaffManagementPage = () => {
         .from('staff')
         .insert([{
           tenant_id: profile.tenant_id,
-          name: inviteForm.name,
+          full_name: inviteForm.name,
+          display_name: inviteForm.name,
           email: inviteForm.email,
           role_id: inviteForm.role_id,
           invite_token: inviteToken,
