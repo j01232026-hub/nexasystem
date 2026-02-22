@@ -71,22 +71,35 @@ const LoginPage = () => {
       }
       
       // 檢查用戶角色和資料完整性
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role, full_name, phone')
         .eq('id', user.id)
         .single();
       
-      // 如果是員工角色，檢查是否需要完善資料
-      if (profile && profile.role === 'staff') {
-        const { data: staffData } = await supabase
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+      }
+      
+      console.log('User role:', profile?.role);
+      
+      // 如果是非老闆角色（員工或店長），檢查是否需要完善資料
+      if (profile && profile.role !== 'admin') {
+        const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('phone, job_title')
           .eq('user_id', user.id)
           .single();
         
+        if (staffError) {
+          console.error('Staff fetch error:', staffError);
+        }
+        
+        console.log('Staff data:', staffData);
+        
         // 如果員工資料不完整，導向資料完善頁面
         if (!staffData || !staffData.phone || !staffData.job_title) {
+          console.log('Redirecting to staff-onboarding');
           navigate('/staff-onboarding');
           return;
         }
