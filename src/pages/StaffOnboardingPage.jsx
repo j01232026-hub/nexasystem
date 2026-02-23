@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  User, Phone, Briefcase, Star, CheckCircle, 
-  ArrowRight, Sparkle, Camera
+  User, Phone, Briefcase, CheckCircle, 
+  ArrowRight, Sparkle, Store
 } from '@phosphor-icons/react';
 import { supabase } from '../lib/supabaseClient';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
@@ -14,23 +14,21 @@ const StaffOnboardingPage = () => {
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
   const [staffData, setStaffData] = useState(null);
+  const [isOwner, setIsOwner] = useState(false); // 是否為老闆/負責人
   
   // Form state
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    job_title: '美容師',
-    specialties: []
+    job_title: '負責人',
+    roles: ['負責人'] // 複選：負責人、設計師
   });
   
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
 
-  // 專長選項
-  const specialtyOptions = [
-    '臉部護理', '身體按摩', '美甲', '美睫', 
-    '紋繡', '除毛', '精油芳療', '其他'
-  ];
+  // 職稱選項（老闆用）
+  const ownerRoleOptions = ['負責人', '設計師'];
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -49,29 +47,38 @@ const StaffOnboardingPage = () => {
       
       setUser(authUser);
       
-      // 2. 載入員工資料
+      // 2. 檢查是否為老闆（透過檢查是否已有 tenant 或 roles）
       const { data: staff, error: staffError } = await supabase
         .from('staff')
         .select('*')
         .eq('user_id', authUser.id)
         .single();
       
-      if (staffError) {
-        console.error('Staff data error:', staffError);
-        // 如果沒有員工資料，可能是透過其他方式註冊的用戶
-        // 不導向首頁，而是讓用戶在這個頁面建立資料
-        // 預填表單使用 user_metadata
+      if (staffError || !staff) {
+        // 沒有 staff 記錄，可能是新註冊的老闆
+        setIsOwner(true);
         setFormData({
           full_name: authUser.user_metadata?.name || '',
           phone: '',
-          job_title: '美容師',
-          specialties: []
+          job_title: '負責人',
+          roles: ['負責人']
         });
         setLoading(false);
         return;
       }
       
       setStaffData(staff);
+      
+      // 檢查是否為老闆（role_id 對應 admin）
+      const { data: role } = await supabase
+        .from('roles')
+        .select('name')
+        .eq('id', staff.role_id)
+        .single();
+      
+      if (role?.name === 'admin') {
+        setIsOwner(true);
+      }
       
       // 3. 檢查 profile 是否存在
       const { data: profile, error: profileError } = await supabase
@@ -80,23 +87,19 @@ const StaffOnboardingPage = () => {
         .eq('id', authUser.id)
         .single();
       
-      console.log('Onboarding - Profile check:', { profile, profileError });
-      
-      // 4. 如果 staff 資料完整且 profile 也存在，才導向首頁
+      // 4. 如果資料完整，導向首頁
       if (staff.phone && staff.job_title && profile) {
-        console.log('Onboarding - Data complete, redirecting to home');
         navigate('/home');
         return;
       }
       
-      console.log('Onboarding - Data incomplete, staying on page');
-      
-      // 4. 預填表單
+      // 5. 預填表單
+      const isUserOwner = role?.name === 'admin';
       setFormData({
         full_name: staff.full_name || authUser.user_metadata?.name || '',
         phone: staff.phone || '',
-        job_title: staff.job_title || '美容師',
-        specialties: staff.specialties || []
+        job_title: isUserOwner ? '負責人' : (staff.job_title || '設計師'),
+        roles: isUserOwner ? ['負責人'] : []
       });
       
     } catch (err) {
@@ -109,19 +112,22 @@ const StaffOnboardingPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // 清除錯誤
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
   };
 
-  const handleSpecialtyToggle = (specialty) => {
+  const handleRoleToggle = (role) => {
     setFormData(prev => {
-      const current = prev.specialties || [];
-      if (current.includes(specialty)) {
-        return { ...prev, specialties: current.filter(s => s !== specialty) };
+      const current = prev.roles || [];
+      if (current.includes(role)) {
+        // 至少保留一個角色
+        if (current.length > 1) {
+          return { ...prev, roles: current.filter(r => r !== role) };
+        }
+        return prev;
       } else {
-        return { ...prev, specialties: [...current, specialty] };
+        return { ...prev, roles: [...current, role] };
       }
     });
   };
@@ -139,8 +145,8 @@ const StaffOnboardingPage = () => {
       newErrors.phone = '請輸入正確的手機號碼格式';
     }
     
-    if (!formData.job_title.trim()) {
-      newErrors.job_title = '請輸入職稱';
+    if (isOwner && formData.roles.length === 0) {
+      newErrors.roles = '請至少選擇一個職稱';
     }
     
     setErrors(newErrors);
@@ -155,53 +161,84 @@ const StaffOnboardingPage = () => {
     setSaving(true);
     
     try {
+      // 組合職稱（老闆：負責人/設計師，員工：原職稱）
+      const jobTitle = isOwner 
+        ? formData.roles.join('、')
+        : formData.job_title;
+
       if (staffData) {
-        // 1. 更新現有 staff 記錄
+        // 更新現有 staff 記錄
         const { error: staffError } = await supabase
           .from('staff')
           .update({
             full_name: formData.full_name,
             phone: formData.phone,
-            job_title: formData.job_title,
-            specialties: formData.specialties,
+            job_title: jobTitle,
             updated_at: new Date().toISOString()
           })
           .eq('id', staffData.id);
         
         if (staffError) throw staffError;
       } else {
-        // 1. 創建新的 staff 記錄
-        // 需要先獲取 tenant_id 和 role_id
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('tenant_id')
-          .eq('id', user.id)
+        // 創建新的 staff 記錄（老闆情況）
+        // 需要先創建 tenant
+        const { data: tenant, error: tenantError } = await supabase
+          .from('tenants')
+          .insert({
+            name: `${formData.full_name}的店家`,
+            slug: `salon-${Date.now()}`,
+            plan_type: 'basic'
+          })
+          .select()
           .single();
         
+        if (tenantError) throw tenantError;
+
+        // 獲取 admin role
         const { data: role } = await supabase
           .from('roles')
           .select('id')
-          .eq('name', 'staff')
+          .eq('name', 'admin')
           .single();
         
+        // 創建 staff 記錄
         const { error: staffError } = await supabase
           .from('staff')
           .insert({
             user_id: user.id,
-            tenant_id: profile?.tenant_id,
+            tenant_id: tenant.id,
             role_id: role?.id,
             full_name: formData.full_name,
             email: user.email,
             phone: formData.phone,
-            job_title: formData.job_title,
-            specialties: formData.specialties,
+            job_title: jobTitle,
             joined_at: new Date().toISOString()
           });
         
         if (staffError) throw staffError;
+
+        // 創建 profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            tenant_id: tenant.id,
+            full_name: formData.full_name,
+            phone: formData.phone,
+            role: 'admin',
+            email: user.email
+          });
+        
+        if (profileError) throw profileError;
+
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/home');
+        }, 2000);
+        return;
       }
       
-      // 2. 更新或創建 profiles 表
+      // 更新或創建 profiles 表（員工情況）
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -209,8 +246,7 @@ const StaffOnboardingPage = () => {
         .single();
       
       if (existingProfile) {
-        // 更新現有 profile
-        const { error: profileError } = await supabase
+        await supabase
           .from('profiles')
           .update({
             full_name: formData.full_name,
@@ -218,17 +254,13 @@ const StaffOnboardingPage = () => {
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id);
-        
-        if (profileError) throw profileError;
       } else {
-        // 創建新的 profile - 從 staffData 獲取 tenant_id
         const tenantId = staffData?.tenant_id;
-        
         if (!tenantId) {
-          throw new Error('無法獲取 tenant_id，請聯繫管理員');
+          throw new Error('無法獲取 tenant_id');
         }
         
-        const { error: profileError } = await supabase
+        await supabase
           .from('profiles')
           .insert({
             id: user.id,
@@ -238,13 +270,9 @@ const StaffOnboardingPage = () => {
             role: 'staff',
             email: user.email
           });
-        
-        if (profileError) throw profileError;
       }
       
       setSuccess(true);
-      
-      // 3秒後導向首頁
       setTimeout(() => {
         navigate('/home');
       }, 2000);
@@ -277,8 +305,12 @@ const StaffOnboardingPage = () => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-500" weight="bold" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">資料已完成！</h2>
-          <p className="text-slate-500 mb-6">歡迎加入團隊，正在為您導向首頁...</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            {isOwner ? '歡迎加入 NEXA！' : '資料已完成！'}
+          </h2>
+          <p className="text-slate-500 mb-6">
+            {isOwner ? '正在為您導向管理中心...' : '正在為您導向首頁...'}
+          </p>
           <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
             <div className="bg-rose-500 h-full rounded-full animate-[shrink_2s_linear_forwards]"></div>
           </div>
@@ -295,10 +327,14 @@ const StaffOnboardingPage = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 text-rose-500 mb-4">
-            <Sparkle weight="fill" className="w-8 h-8" />
+            {isOwner ? <Store weight="fill" className="w-8 h-8" /> : <Sparkle weight="fill" className="w-8 h-8" />}
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">完善您的資料</h1>
-          <p className="text-slate-500">請填寫基本資料，讓客戶更認識您</p>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">
+            {isOwner ? '完善您的資料' : '完善您的資料'}
+          </h1>
+          <p className="text-slate-500">
+            {isOwner ? '請填寫基本資料，開始建立您的店家' : '請填寫基本資料，讓客戶更認識您'}
+          </p>
         </div>
 
         <GlassPanel className="p-6 sm:p-8">
@@ -341,50 +377,48 @@ const StaffOnboardingPage = () => {
               )}
             </div>
 
-            {/* 職稱 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Briefcase className="w-4 h-4 inline mr-1" />
-                職稱 <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="job_title"
-                value={formData.job_title}
-                onChange={handleChange}
-                placeholder="例如：美容師、設計師"
-                className={`w-full px-4 py-3 rounded-xl border ${errors.job_title ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white/50'} focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all`}
-              />
-              {errors.job_title && (
-                <p className="text-rose-500 text-sm mt-1">{errors.job_title}</p>
-              )}
-            </div>
-
-            {/* 專長 */}
+            {/* 職稱 - 老闆：複選框，員工：輸入框 */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-3">
-                <Star className="w-4 h-4 inline mr-1" />
-                專長項目（可複選）
+                <Briefcase className="w-4 h-4 inline mr-1" />
+                職稱 {isOwner && <span className="text-slate-400 text-xs">（可複選）</span>}
               </label>
-              <div className="flex flex-wrap gap-2">
-                {specialtyOptions.map(specialty => (
-                  <button
-                    key={specialty}
-                    type="button"
-                    onClick={() => handleSpecialtyToggle(specialty)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      formData.specialties.includes(specialty)
-                        ? 'bg-rose-500 text-white shadow-lg shadow-rose-200'
-                        : 'bg-white/50 text-slate-600 border border-slate-200 hover:border-rose-300'
-                    }`}
-                  >
-                    {formData.specialties.includes(specialty) && (
-                      <CheckCircle className="w-3 h-3 inline mr-1" weight="fill" />
-                    )}
-                    {specialty}
-                  </button>
-                ))}
-              </div>
+              
+              {isOwner ? (
+                // 老闆：複選框
+                <div className="flex flex-wrap gap-3">
+                  {ownerRoleOptions.map(role => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => handleRoleToggle(role)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                        formData.roles.includes(role)
+                          ? 'bg-rose-500 text-white border-rose-500 shadow-md'
+                          : 'bg-white/50 text-slate-600 border-slate-200 hover:border-rose-300'
+                      }`}
+                    >
+                      <span className="mr-1">
+                        {formData.roles.includes(role) ? '☑' : '☐'}
+                      </span>
+                      {role}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                // 員工：輸入框
+                <input
+                  type="text"
+                  name="job_title"
+                  value={formData.job_title}
+                  onChange={handleChange}
+                  placeholder="例如：美容師、設計師"
+                  className={`w-full px-4 py-3 rounded-xl border ${errors.job_title ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white/50'} focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all`}
+                />
+              )}
+              {errors.roles && (
+                <p className="text-rose-500 text-sm mt-1">{errors.roles}</p>
+              )}
             </div>
 
             {/* 錯誤訊息 */}
@@ -407,7 +441,7 @@ const StaffOnboardingPage = () => {
                 </>
               ) : (
                 <>
-                  完成設定
+                  {isOwner ? '建立店家' : '完成設定'}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
@@ -417,7 +451,7 @@ const StaffOnboardingPage = () => {
 
         {/* Footer */}
         <p className="text-center text-slate-400 text-sm mt-6">
-          這些資料將顯示給客戶查看
+          {isOwner ? '建立店家後，您可以邀請員工加入' : '這些資料將顯示給客戶查看'}
         </p>
       </div>
     </div>
