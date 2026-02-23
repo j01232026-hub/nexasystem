@@ -72,7 +72,7 @@ const LoginPage = () => {
       // 檢查用戶角色和資料完整性
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, full_name, phone')
+        .select('role, full_name, phone, tenant_id')
         .eq('id', user.id)
         .single();
 
