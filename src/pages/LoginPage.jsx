@@ -80,16 +80,36 @@ const LoginPage = () => {
         console.error('Profile fetch error:', profileError);
       }
 
-      // 如果沒有 profile 或是非老闆角色，都需要檢查員工資料
-      if (!profile || profile.role !== 'admin') {
-        const { data: staffData, error: staffError } = await supabase
+      // 如果沒有 profile，導向資料完善頁面
+      if (!profile) {
+        navigate('/staff-onboarding');
+        return;
+      }
+
+      // 如果是老闆(role=owner)，檢查是否已完成店家設定
+      if (profile.role === 'owner') {
+        // 檢查店家資訊是否已填寫（tenant.name 不是預設值）
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', profile.tenant_id)
+          .single();
+        
+        if (tenant && tenant.name && tenant.name.includes('的店家')) {
+          navigate('/store-setup');
+          return;
+        }
+      }
+
+      // 如果是員工，檢查資料完整性
+      if (profile.role === 'staff') {
+        const { data: staffData } = await supabase
           .from('staff')
           .select('phone, job_title')
           .eq('user_id', user.id)
           .single();
 
-        // 如果沒有 profile 或員工資料不完整，導向資料完善頁面
-        if (!profile || !staffData || !staffData?.phone || !staffData?.job_title) {
+        if (!staffData?.phone || !staffData?.job_title) {
           navigate('/staff-onboarding');
           return;
         }
