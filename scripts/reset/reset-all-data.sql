@@ -11,12 +11,12 @@ ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;
 
 -- 2. 清除資料（按照外鍵依賴順序）
 -- 先清除有外鍵引用的表
-DELETE FROM transaction_ledger WHERE 1=1;
+DELETE FROM transaction_ledger;
 DELETE FROM activity_logs;
 DELETE FROM staff;
 DELETE FROM profiles;
-DELETE FROM auth.users WHERE email NOT LIKE '%@nexa.com';  -- 保留 demo 帳號
-DELETE FROM tenants WHERE name != 'NEXA Demo Salon';  -- 保留 demo tenant
+DELETE FROM auth.users WHERE email NOT LIKE '%@nexa.com';
+DELETE FROM tenants WHERE name != 'NEXA Demo Salon';
 
 -- 3. 重置角色（保留預設角色）
 -- 不需要刪除，保留即可
