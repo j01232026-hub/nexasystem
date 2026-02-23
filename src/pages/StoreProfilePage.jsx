@@ -749,7 +749,12 @@ const StoreProfilePage = () => {
                                             <div>
                                                 <div className="flex items-center">
                                                     <p className="text-sm font-semibold text-slate-800">{staff.display_name || staff.full_name}</p>
-                                                    <span className="ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded">{staff.role}</span>
+                                                    <span className="ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded">
+                                                        {staff.role === 'stylist' ? '設計師' : 
+                                                         staff.role === 'assistant' ? '助理' : 
+                                                         staff.role === 'manager' ? '店長' : 
+                                                         staff.role || '員工'}
+                                                    </span>
                                                 </div>
                                                 <p className="text-xs text-slate-500">員工編號: {staff.id.slice(0, 8)}</p> 
                                             </div>
