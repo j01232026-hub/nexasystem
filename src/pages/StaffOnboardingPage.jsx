@@ -279,7 +279,8 @@ const StaffOnboardingPage = () => {
       
     } catch (err) {
       console.error('Error saving profile:', err);
-      setErrors({ submit: '儲存失敗，請稍後再試' });
+      const errorMessage = err.message || err.error_description || '儲存失敗，請稍後再試';
+      setErrors({ submit: `儲存失敗：${errorMessage}` });
     } finally {
       setSaving(false);
     }
