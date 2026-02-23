@@ -88,14 +88,20 @@ const LoginPage = () => {
 
       // 如果是老闆(role=owner)，檢查是否已完成店家設定
       if (profile.role === 'owner') {
-        // 檢查店家資訊是否已填寫（tenant.name 不是預設值）
+        // 檢查店家資訊是否已填寫（電話和地址不是預設值）
         const { data: tenant } = await supabase
           .from('tenants')
-          .select('name')
+          .select('name, phone, address')
           .eq('id', profile.tenant_id)
           .single();
         
-        if (tenant && tenant.name && tenant.name.includes('的店家')) {
+        // 如果電話或地址是空的或包含"範例"，表示還沒設定
+        const needsSetup = !tenant?.phone || 
+                          !tenant?.address || 
+                          tenant.phone.includes('範例') || 
+                          tenant.address.includes('範例');
+        
+        if (needsSetup) {
           navigate('/store-setup');
           return;
         }
