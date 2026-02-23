@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Storefront, Phone, MapPin, Clock, CheckCircle, 
-  ArrowRight, Buildings, Camera
+  Storefront, CheckCircle, ArrowRight, Buildings
 } from '@phosphor-icons/react';
 import { supabase } from '../lib/supabaseClient';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
@@ -16,13 +15,9 @@ const StoreSetupPage = () => {
   const [profile, setProfile] = useState(null);
   const [success, setSuccess] = useState(false);
   
-  // Form state
+  // Form state - 只保留 tenants 表有的欄位
   const [formData, setFormData] = useState({
-    store_name: '',
-    store_phone: '',
-    address: '',
-    business_hours: '10:00-20:00',
-    description: ''
+    store_name: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -56,9 +51,9 @@ const StoreSetupPage = () => {
       
       setProfile(profileData);
       
-      // 如果店家資訊已完整，導向首頁
+      // 如果店家名稱已經不是預設值，導向首頁
       const tenant = profileData.tenants;
-      if (tenant && tenant.name && tenant.name !== `${profileData.full_name}的店家`) {
+      if (tenant && tenant.name && !tenant.name.includes('的店家')) {
         navigate('/home');
         return;
       }
@@ -91,14 +86,6 @@ const StoreSetupPage = () => {
       newErrors.store_name = '請輸入店家名稱';
     }
     
-    if (!formData.store_phone.trim()) {
-      newErrors.store_phone = '請輸入店家電話';
-    }
-    
-    if (!formData.address.trim()) {
-      newErrors.address = '請輸入店家地址';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -111,15 +98,11 @@ const StoreSetupPage = () => {
     setSaving(true);
     
     try {
-      // 更新 tenant 資料
+      // 更新 tenant 資料 - 只更新 name 欄位
       const { error: tenantError } = await supabase
         .from('tenants')
         .update({
           name: formData.store_name,
-          phone: formData.store_phone,
-          address: formData.address,
-          business_hours: formData.business_hours,
-          description: formData.description,
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.tenant_id);
@@ -182,7 +165,7 @@ const StoreSetupPage = () => {
             <Storefront weight="fill" className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800 mb-2">設定您的店家</h1>
-          <p className="text-slate-500">填寫店家資訊，讓客戶更了解您</p>
+          <p className="text-slate-500">為您的店家取個名字吧</p>
         </div>
 
         {/* 進度指示器 */}
@@ -193,14 +176,14 @@ const StoreSetupPage = () => {
             <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center text-sm font-bold">2</div>
           </div>
         </div>
-        <p className="text-center text-sm text-slate-400 mb-6">步驟 2/2：店家資訊</p>
+        <p className="text-center text-sm text-slate-400 mb-6">步驟 2/2：店家名稱</p>
 
         <GlassPanel className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 店家名稱 */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Storefront className="w-4 h-4 inline mr-1" />
+                <Buildings className="w-4 h-4 inline mr-1" />
                 店家名稱 <span className="text-rose-500">*</span>
               </label>
               <input
@@ -214,76 +197,6 @@ const StoreSetupPage = () => {
               {errors.store_name && (
                 <p className="text-rose-500 text-sm mt-1">{errors.store_name}</p>
               )}
-            </div>
-
-            {/* 店家電話 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Phone className="w-4 h-4 inline mr-1" />
-                店家電話 <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="store_phone"
-                value={formData.store_phone}
-                onChange={handleChange}
-                placeholder="例如：02-2345-6789"
-                className={`w-full px-4 py-3 rounded-xl border ${errors.store_phone ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white/50'} focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all`}
-              />
-              {errors.store_phone && (
-                <p className="text-rose-500 text-sm mt-1">{errors.store_phone}</p>
-              )}
-            </div>
-
-            {/* 店家地址 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-1" />
-                店家地址 <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="例如：台北市大安區復興南路一段100號"
-                className={`w-full px-4 py-3 rounded-xl border ${errors.address ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-white/50'} focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all`}
-              />
-              {errors.address && (
-                <p className="text-rose-500 text-sm mt-1">{errors.address}</p>
-              )}
-            </div>
-
-            {/* 營業時間 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Clock className="w-4 h-4 inline mr-1" />
-                營業時間
-              </label>
-              <input
-                type="text"
-                name="business_hours"
-                value={formData.business_hours}
-                onChange={handleChange}
-                placeholder="例如：10:00-20:00"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/50 focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all"
-              />
-              <p className="text-xs text-slate-400 mt-1">格式：開始時間-結束時間，例如 10:00-20:00</p>
-            </div>
-
-            {/* 店家簡介 */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                店家簡介
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="簡單介紹您的店家特色..."
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/50 focus:border-rose-300 focus:ring-4 focus:ring-rose-100 outline-none transition-all resize-none"
-              />
             </div>
 
             {/* 錯誤訊息 */}
