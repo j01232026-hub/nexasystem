@@ -225,7 +225,7 @@ const StaffOnboardingPage = () => {
             tenant_id: tenant.id,
             full_name: formData.full_name,
             phone: formData.phone,
-            role: 'admin',
+            role: 'owner',
             email: user.email
           });
         
