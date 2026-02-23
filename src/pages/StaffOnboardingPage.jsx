@@ -233,8 +233,9 @@ const StaffOnboardingPage = () => {
 
         setSuccess(true);
         setTimeout(() => {
-          navigate('/home');
-        }, 2000);
+          // 老闆填完個人資料後，導向店家設定頁
+          navigate('/store-setup');
+        }, 1500);
         return;
       }
       
