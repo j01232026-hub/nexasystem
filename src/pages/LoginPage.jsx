@@ -70,11 +70,17 @@ const LoginPage = () => {
       }
 
       // 檢查用戶角色和資料完整性
+      console.log('=== LOGIN DEBUG START ===');
+      console.log('User ID:', user.id);
+      
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role, full_name, phone, tenant_id')
         .eq('id', user.id)
         .single();
+
+      console.log('Profile:', profile);
+      console.log('Profile error:', profileError);
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
