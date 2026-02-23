@@ -675,11 +675,11 @@ const StoreProfilePage = () => {
                     <div className="space-y-3 mb-8">
                         <div className="flex items-center text-sm text-slate-600">
                             <Phone className="w-4 h-4 mr-3 text-slate-400" />
-                            {store?.phone || '02-1234-5678 (範例)'}
+                            {store?.phone || <span className="text-slate-400 italic">尚未設定電話</span>}
                         </div>
                         <div className="flex items-center text-sm text-slate-600">
                             <MapPin className="w-4 h-4 mr-3 text-slate-400" />
-                            {store?.address || '台北市大安區忠孝東路四段 123 號 (範例)'}
+                            {store?.address || <span className="text-slate-400 italic">尚未設定地址</span>}
                         </div>
 
                         {/* Deposit Info Display */}
