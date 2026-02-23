@@ -92,38 +92,38 @@ const LoginPage = () => {
         return;
       }
 
-      // 如果是老闆(role=owner)，檢查是否已完成店家設定
-      if (profile.role === 'owner') {
-        console.log('Checking store setup for owner, tenant_id:', profile.tenant_id);
-        
-        // 檢查店家資訊是否已填寫（電話和地址不是預設值）
-        const { data: tenant, error: tenantError } = await supabase
-          .from('tenants')
-          .select('name, phone, address')
-          .eq('id', profile.tenant_id)
-          .single();
-        
-        console.log('Tenant data:', tenant);
-        console.log('Tenant error:', tenantError);
-        
-        if (tenantError || !tenant) {
-          console.log('No tenant found, redirecting to store-setup');
-          navigate('/store-setup');
-          return;
-        }
-        
-        // 如果電話或地址是空的或包含"範例"，表示還沒設定
-        const needsSetup = !tenant.phone || 
-                          !tenant.address || 
-                          tenant.phone.includes('範例') || 
-                          tenant.address.includes('範例');
-        
-        console.log('Needs setup:', needsSetup, 'Phone:', tenant.phone, 'Address:', tenant.address);
-        
-        if (needsSetup) {
-          navigate('/store-setup');
-          return;
-        }
+      // 檢查是否需要設定店家資訊
+      // 情況1: role=owner（老闆）
+      // 情況2: role=staff 但沒有對應的 staff 記錄（可能是之前測試的資料）
+      console.log('Checking store setup, role:', profile.role, 'tenant_id:', profile.tenant_id);
+      
+      // 檢查店家資訊是否已填寫（電話和地址不是預設值）
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('name, phone, address')
+        .eq('id', profile.tenant_id)
+        .single();
+      
+      console.log('Tenant data:', tenant);
+      console.log('Tenant error:', tenantError);
+      
+      if (tenantError || !tenant) {
+        console.log('No tenant found, redirecting to store-setup');
+        navigate('/store-setup');
+        return;
+      }
+      
+      // 如果電話或地址是空的或包含"範例"，表示還沒設定
+      const needsSetup = !tenant.phone || 
+                        !tenant.address || 
+                        tenant.phone.includes('範例') || 
+                        tenant.address.includes('範例');
+      
+      console.log('Needs setup:', needsSetup, 'Phone:', tenant.phone, 'Address:', tenant.address);
+      
+      if (needsSetup) {
+        navigate('/store-setup');
+        return;
       }
 
       // 如果是員工，檢查資料完整性
