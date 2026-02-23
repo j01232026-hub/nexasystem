@@ -58,10 +58,10 @@ const StoreSetupPage = () => {
         return;
       }
       
-      // 預填店家名稱
+      // 店家名稱留白，由負責人自行填寫
       setFormData(prev => ({
         ...prev,
-        store_name: tenant?.name?.replace('的店家', '') || profileData.full_name
+        store_name: ''
       }));
       
     } catch (err) {
