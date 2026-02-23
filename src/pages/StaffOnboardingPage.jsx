@@ -187,7 +187,7 @@ const StaffOnboardingPage = () => {
           .insert({
             name: `${formData.full_name}的店家`,
             slug: `salon-${Date.now()}`,
-            plan_type: 'basic'
+            plan_type: 'lite'
           })
           .select()
           .single();
