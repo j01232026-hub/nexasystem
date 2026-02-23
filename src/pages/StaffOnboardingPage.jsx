@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Phone, Briefcase, CheckCircle, 
-  ArrowRight, Sparkle, Store
+  ArrowRight, Sparkle, Buildings
 } from '@phosphor-icons/react';
 import { supabase } from '../lib/supabaseClient';
 import BackgroundDecoration from '../components/ui/BackgroundDecoration';
@@ -327,7 +327,7 @@ const StaffOnboardingPage = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 text-rose-500 mb-4">
-            {isOwner ? <Store weight="fill" className="w-8 h-8" /> : <Sparkle weight="fill" className="w-8 h-8" />}
+            {isOwner ? <Buildings weight="fill" className="w-8 h-8" /> : <Sparkle weight="fill" className="w-8 h-8" />}
           </div>
           <h1 className="text-2xl font-bold text-slate-800 mb-2">
             {isOwner ? '完善您的資料' : '完善您的資料'}
