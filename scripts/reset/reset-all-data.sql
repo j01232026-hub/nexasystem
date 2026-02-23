@@ -10,6 +10,8 @@ ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;
 
 -- 2. 清除資料（按照外鍵依賴順序）
+-- 先清除有外鍵引用的表
+DELETE FROM transaction_ledger WHERE 1=1;
 DELETE FROM activity_logs;
 DELETE FROM staff;
 DELETE FROM profiles;
