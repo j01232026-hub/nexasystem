@@ -289,10 +289,10 @@ const StaffManagementPage = () => {
             您沒有權限管理員工，請聯繫老闆或店長。
           </p>
           <button 
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate(-1)}
             className="px-6 py-2 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 transition-colors"
           >
-            返回管理頁面
+            返回上一頁
           </button>
         </div>
       </div>
@@ -308,7 +308,7 @@ const StaffManagementPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <div className="flex items-center space-x-4">
             <button 
-              onClick={() => navigate('/admin')} 
+              onClick={() => navigate(-1)} 
               className="p-2 bg-white/50 hover:bg-white rounded-full text-slate-600 transition-colors shadow-sm flex-shrink-0"
             >
               <ArrowLeft weight="bold" className="w-6 h-6" />
