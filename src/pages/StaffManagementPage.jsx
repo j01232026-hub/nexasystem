@@ -37,6 +37,25 @@ const StaffManagementPage = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [storeName, setStoreName] = useState('');
 
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    display_name: '',
+    phone: '',
+    email: '',
+    job_title: '',
+    role_id: '',
+    is_active: true
+  });
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingStaff, setDeletingStaff] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   useEffect(() => {
     fetchData();
     fetchRoles();
@@ -210,6 +229,111 @@ const StaffManagementPage = () => {
     window.open(`https://line.me/R/msg/text/?${text}`, '_blank');
   };
 
+  // 打開編輯彈窗
+  const handleEditClick = (staff) => {
+    setEditingStaff(staff);
+    setEditForm({
+      full_name: staff.full_name || '',
+      display_name: staff.display_name || '',
+      phone: staff.phone || '',
+      email: staff.email || '',
+      job_title: staff.job_title || '',
+      role_id: staff.role_id || '',
+      is_active: staff.is_active !== false
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // 處理編輯表單變更
+  const handleEditFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // 儲存編輯
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingStaff) return;
+    
+    setEditLoading(true);
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({
+          full_name: editForm.full_name,
+          display_name: editForm.display_name,
+          phone: editForm.phone,
+          email: editForm.email,
+          job_title: editForm.job_title,
+          role_id: editForm.role_id,
+          is_active: editForm.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingStaff.id);
+
+      if (error) throw error;
+
+      // 關閉彈窗並重新載入
+      setIsEditModalOpen(false);
+      setEditingStaff(null);
+      fetchData();
+      
+    } catch (err) {
+      console.error('Error updating staff:', err);
+      alert('更新失敗: ' + err.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // 打開刪除確認彈窗
+  const handleDeleteClick = (staff) => {
+    setDeletingStaff(staff);
+    setIsDeleteModalOpen(true);
+  };
+
+  // 確認刪除
+  const handleConfirmDelete = async () => {
+    if (!deletingStaff) return;
+    
+    setDeleteLoading(true);
+    try {
+      // 檢查是否為老闆（不能刪除老闆）
+      const { data: role } = await supabase
+        .from('roles')
+        .select('name')
+        .eq('id', deletingStaff.role_id)
+        .single();
+      
+      if (role?.name === 'admin') {
+        alert('無法刪除店家負責人');
+        setDeleteLoading(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('staff')
+        .delete()
+        .eq('id', deletingStaff.id);
+
+      if (error) throw error;
+
+      // 關閉彈窗並重新載入
+      setIsDeleteModalOpen(false);
+      setDeletingStaff(null);
+      fetchData();
+      
+    } catch (err) {
+      console.error('Error deleting staff:', err);
+      alert('刪除失敗: ' + err.message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const getRoleBadge = (role) => {
     if (!role) return <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full">未知</span>;
     
@@ -374,11 +498,22 @@ const StaffManagementPage = () => {
                   {/* 識別證風格卡片 - 信用卡比例 1.586:1 */}
                   <div className="absolute top-0 left-0 right-0 h-[40%] bg-gradient-to-br from-rose-400 to-pink-500"></div>
                   
-                  {/* 編輯按鈕 */}
+                  {/* 編輯和刪除按鈕 */}
                   <PermissionGuard adminOnly>
-                    <button className="absolute top-3 right-3 z-10 p-2 bg-white/90 text-slate-400 hover:text-rose-500 rounded-lg shadow-sm transition-colors opacity-0 group-hover:opacity-100">
-                      <PencilSimple className="w-4 h-4" />
-                    </button>
+                    <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleEditClick(staff)}
+                        className="p-2 bg-white/90 text-slate-400 hover:text-rose-500 rounded-lg shadow-sm transition-colors"
+                      >
+                        <PencilSimple className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClick(staff)}
+                        className="p-2 bg-white/90 text-slate-400 hover:text-red-500 rounded-lg shadow-sm transition-colors"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
                   </PermissionGuard>
                   
                   {/* 照片區域 - 左上角 */}
@@ -616,6 +751,200 @@ const StaffManagementPage = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Staff Modal */}
+      {isEditModalOpen && editingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">編輯員工資料</h3>
+              <button 
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingStaff(null);
+                }} 
+                className="p-1 hover:bg-slate-100 rounded-full text-slate-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+              {/* 姓名 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">姓名 *</label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={editForm.full_name}
+                  onChange={handleEditFormChange}
+                  required
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+
+              {/* 顯示名稱 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">顯示名稱</label>
+                <input
+                  type="text"
+                  name="display_name"
+                  value={editForm.display_name}
+                  onChange={handleEditFormChange}
+                  placeholder="客戶看到的名字"
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+
+              {/* 職稱 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">職稱</label>
+                <input
+                  type="text"
+                  name="job_title"
+                  value={editForm.job_title}
+                  onChange={handleEditFormChange}
+                  placeholder="如：設計師、美容師"
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+
+              {/* 電話 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">手機號碼</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={editForm.phone}
+                  onChange={handleEditFormChange}
+                  placeholder="0912345678"
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editForm.email}
+                  onChange={handleEditFormChange}
+                  placeholder="staff@example.com"
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+
+              {/* 系統角色 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">系統角色 *</label>
+                <select
+                  name="role_id"
+                  value={editForm.role_id}
+                  onChange={handleEditFormChange}
+                  required
+                  className="w-full px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                >
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>
+                      {role.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 啟用狀態 */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={editForm.is_active}
+                  onChange={handleEditFormChange}
+                  className="w-4 h-4 text-rose-500 border-slate-300 rounded focus:ring-rose-500"
+                />
+                <label className="text-sm text-slate-700">帳號啟用中</label>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingStaff(null);
+                  }}
+                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 px-4 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      儲存中...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      儲存變更
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && deletingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash className="w-8 h-8 text-red-500" weight="bold" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">確認刪除員工？</h3>
+              <p className="text-slate-500 mb-6">
+                您即將刪除 <span className="font-medium text-slate-700">{deletingStaff.display_name || deletingStaff.full_name}</span> 的資料。<br/>
+                此操作無法復原。
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setDeletingStaff(null);
+                  }}
+                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      刪除中...
+                    </>
+                  ) : (
+                    <>
+                      <Trash className="w-5 h-5" />
+                      確認刪除
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
