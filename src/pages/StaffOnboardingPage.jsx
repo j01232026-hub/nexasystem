@@ -48,14 +48,53 @@ const StaffOnboardingPage = () => {
       setUser(authUser);
       
       // 2. 檢查是否為老闆（透過檢查是否已有 tenant 或 roles）
-      const { data: staff, error: staffError } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .single();
+      // 先檢查是否有 invite_token（被邀請的員工）
+      const urlParams = new URLSearchParams(window.location.search);
+      const inviteToken = urlParams.get('token');
       
-      if (staffError || !staff) {
-        // 沒有 staff 記錄，可能是新註冊的老闆
+      let staff = null;
+      let isInvitedStaff = false;
+      
+      if (inviteToken) {
+        // 有邀請碼，查找對應的 staff 記錄
+        const { data: invitedStaff, error: inviteError } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('invite_token', inviteToken)
+          .single();
+        
+        if (!inviteError && invitedStaff) {
+          staff = invitedStaff;
+          isInvitedStaff = true;
+          
+          // 更新 staff 記錄，綁定 user_id
+          await supabase
+            .from('staff')
+            .update({ 
+              user_id: authUser.id,
+              invite_token: null,
+              invite_expires_at: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', invitedStaff.id);
+        }
+      }
+      
+      // 如果沒有找到邀請記錄，再檢查是否有現有的 staff 記錄
+      if (!staff) {
+        const { data: existingStaff, error: staffError } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .single();
+        
+        if (!staffError && existingStaff) {
+          staff = existingStaff;
+        }
+      }
+      
+      if (!staff) {
+        // 沒有 staff 記錄，是新註冊的老闆
         setIsOwner(true);
         setFormData({
           full_name: authUser.user_metadata?.name || '',
@@ -76,7 +115,8 @@ const StaffOnboardingPage = () => {
         .eq('id', staff.role_id)
         .single();
       
-      if (role?.name === 'admin') {
+      // 只有非邀請的員工且 role 為 admin 才是老闆
+      if (!isInvitedStaff && role?.name === 'admin') {
         setIsOwner(true);
       }
       
@@ -94,11 +134,19 @@ const StaffOnboardingPage = () => {
       }
       
       // 5. 預填表單
-      const isUserOwner = role?.name === 'admin';
+      const isUserOwner = !isInvitedStaff && role?.name === 'admin';
+      setIsOwner(isUserOwner);
+      
+      // 員工：從 staff.job_title 取得預設職稱
+      // 老闆：預設為負責人
+      const defaultJobTitle = isUserOwner 
+        ? '負責人' 
+        : (staff.job_title || '設計師');
+      
       setFormData({
         full_name: staff.full_name || authUser.user_metadata?.name || '',
         phone: staff.phone || '',
-        job_title: isUserOwner ? '負責人' : (staff.job_title || '設計師'),
+        job_title: defaultJobTitle,
         roles: isUserOwner ? ['負責人'] : []
       });
       
