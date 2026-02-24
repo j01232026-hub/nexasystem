@@ -739,31 +739,19 @@ const StoreProfilePage = () => {
                                 staffList.map(staff => (
                                     <div key={staff.id} className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl border border-slate-200 overflow-hidden group hover:shadow-xl hover:border-rose-200 transition-all mx-auto w-full max-w-[340px] sm:max-w-none" style={{ aspectRatio: '1.586/1' }}>
                                         {/* 識別證風格卡片 - 信用卡比例 1.586:1 */}
-                                        <div className="absolute top-0 left-0 right-0 h-[45%] bg-gradient-to-br from-rose-400 to-pink-500"></div>
+                                        <div className="absolute top-0 left-0 right-0 h-[40%] bg-gradient-to-br from-rose-400 to-pink-500"></div>
                                         
                                         {/* 照片區域 - 放大並置中 */}
-                                        <div className="absolute top-3 left-1/2 -translate-x-1/2">
-                                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
+                                        <div className="absolute top-2 left-4">
+                                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
                                                 {staff.avatar_url ? (
                                                     <img src={staff.avatar_url} alt={staff.full_name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
-                                                        <UserCircle className="w-12 h-12 sm:w-14 sm:h-14 text-rose-400" weight="fill" />
+                                                        <UserCircle className="w-10 h-10 sm:w-12 sm:h-12 text-rose-400" weight="fill" />
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                        
-                                        {/* 資訊區域 */}
-                                        <div className="absolute bottom-0 left-0 right-0 h-[55%] pt-12 sm:pt-14 px-4 pb-4 flex flex-col items-center justify-end">
-                                            <p className="text-base sm:text-lg font-bold text-slate-800 text-center truncate w-full">{staff.display_name || staff.full_name}</p>
-                                            <span className="mt-2 px-3 py-1 bg-rose-100 text-rose-600 text-xs font-bold rounded-full">
-                                                {staff.role === 'stylist' ? '設計師' : 
-                                                 staff.role === 'assistant' ? '助理' : 
-                                                 staff.role === 'manager' ? '店長' : 
-                                                 staff.role || '員工'}
-                                            </span>
-                                            <p className="mt-2 text-xs text-slate-400">{staff.id.slice(0, 8)}</p>
                                         </div>
                                         
                                         {/* 編輯按鈕 */}
@@ -774,6 +762,44 @@ const StoreProfilePage = () => {
                                             <button className="p-2 bg-white/90 text-slate-400 hover:text-red-500 rounded-lg shadow-sm transition-colors">
                                                 <Trash className="w-4 h-4" />
                                             </button>
+                                        </div>
+                                        
+                                        {/* 資訊區域 */}
+                                        <div className="absolute bottom-0 left-0 right-0 h-[60%] pt-10 px-4 pb-4 flex flex-col justify-end">
+                                            {/* 姓名與角色 - 靠左對齊 */}
+                                            <div className="mb-2">
+                                                <p className="text-base sm:text-lg font-bold text-slate-800 truncate">{staff.display_name || staff.full_name}</p>
+                                                <span className="inline-block mt-1 px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] font-bold rounded-full">
+                                                    {staff.role === 'stylist' ? '設計師' : 
+                                                     staff.role === 'assistant' ? '助理' : 
+                                                     staff.role === 'manager' ? '店長' : 
+                                                     staff.role || '員工'}
+                                                </span>
+                                            </div>
+                                            
+                                            {/* 聯絡資訊 */}
+                                            <div className="space-y-1 text-xs text-slate-500">
+                                                {staff.phone && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="w-4 h-4 flex items-center justify-center">📞</span>
+                                                        <span className="truncate">{staff.phone}</span>
+                                                    </div>
+                                                )}
+                                                {staff.email && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="w-4 h-4 flex items-center justify-center">✉️</span>
+                                                        <span className="truncate">{staff.email}</span>
+                                                    </div>
+                                                )}
+                                                {!staff.phone && !staff.email && (
+                                                    <div className="text-slate-400 italic">尚無聯絡資訊</div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* 員工編號 - 右下角 */}
+                                            <div className="absolute bottom-3 right-4 text-[10px] text-slate-300 font-mono">
+                                                {staff.id.slice(0, 8)}
+                                            </div>
                                         </div>
                                     </div>
                                 ))
