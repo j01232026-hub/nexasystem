@@ -344,8 +344,8 @@ const StaffManagementPage = () => {
           </div>
         </div>
 
-        {/* Content */}
-        <GlassPanel className="w-full min-h-[400px]">
+        {/* Content - 移除 GlassPanel 外框 */}
+        <div className="w-full">
           {loading ? (
             <div className="flex justify-center items-center h-64 text-slate-400">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mr-3"></div>
@@ -368,42 +368,42 @@ const StaffManagementPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {staffList.map((staff) => (
-                <div key={staff.id} className="relative bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-rose-200 transition-all group" style={{ aspectRatio: '4/3' }}>
-                  {/* 識別證風格卡片 */}
-                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-br from-rose-400 to-pink-500"></div>
+                <div key={staff.id} className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-rose-200 transition-all group mx-auto w-full max-w-[340px] sm:max-w-none" style={{ aspectRatio: '1.586/1' }}>
+                  {/* 識別證風格卡片 - 信用卡比例 1.586:1 */}
+                  <div className="absolute top-0 left-0 right-0 h-[45%] bg-gradient-to-br from-rose-400 to-pink-500"></div>
                   
                   {/* 編輯按鈕 */}
                   <PermissionGuard adminOnly>
-                    <button className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 text-slate-400 hover:text-rose-500 rounded-lg shadow-sm transition-colors opacity-0 group-hover:opacity-100">
-                      <PencilSimple className="w-3 h-3" />
+                    <button className="absolute top-3 right-3 z-10 p-2 bg-white/90 text-slate-400 hover:text-rose-500 rounded-lg shadow-sm transition-colors opacity-0 group-hover:opacity-100">
+                      <PencilSimple className="w-4 h-4" />
                     </button>
                   </PermissionGuard>
                   
                   {/* 照片區域 - 放大並置中 */}
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
                       {staff.avatar_url ? (
                         <img src={staff.avatar_url} alt={staff.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
-                          <User weight="fill" className="w-10 h-10 sm:w-12 sm:h-12 text-rose-400" />
+                          <User weight="fill" className="w-12 h-12 sm:w-14 sm:h-14 text-rose-400" />
                         </div>
                       )}
                     </div>
                   </div>
                   
                   {/* 資訊區域 */}
-                  <div className="absolute bottom-0 left-0 right-0 h-1/2 pt-8 px-2 pb-2 flex flex-col items-center justify-end">
-                    <h3 className="font-bold text-slate-800 text-sm sm:text-base truncate w-full text-center">{staff.display_name || staff.full_name}</h3>
-                    <div className="flex items-center gap-1 mt-1 flex-wrap justify-center">
+                  <div className="absolute bottom-0 left-0 right-0 h-[55%] pt-12 sm:pt-14 px-4 pb-4 flex flex-col items-center justify-end">
+                    <h3 className="font-bold text-slate-800 text-base sm:text-lg truncate w-full text-center">{staff.display_name || staff.full_name}</h3>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
                       {getRoleBadge(staff.roles)}
                       {getStatusBadge(staff)}
                     </div>
                     
                     {/* 聯絡資訊 - 簡化顯示 */}
-                    <div className="mt-1 text-[10px] text-slate-400 truncate w-full text-center">
+                    <div className="mt-2 text-xs text-slate-400 truncate w-full text-center">
                       {staff.phone || staff.email || '尚無聯絡資訊'}
                     </div>
                   </div>
@@ -411,7 +411,7 @@ const StaffManagementPage = () => {
               ))}
             </div>
           )}
-        </GlassPanel>
+        </div>
       </div>
 
       {/* Invite Staff Modal */}
