@@ -368,88 +368,45 @@ const StaffManagementPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-2 sm:p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4">
               {staffList.map((staff) => (
-                <div key={staff.id} className="bg-white/60 backdrop-blur-sm rounded-xl border border-slate-100 p-3 sm:p-4 hover:shadow-md transition-all group">
-                  <div className="flex items-start justify-between mb-2 sm:mb-3">
-                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center text-rose-400 overflow-hidden flex-shrink-0">
-                        {staff.avatar_url ? (
-                          <img src={staff.avatar_url} alt={staff.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <User weight="fill" className="w-5 h-5 sm:w-6 sm:h-6" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-slate-800 text-sm sm:text-base truncate">{staff.display_name || staff.full_name}</h3>
-                        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
-                          {getRoleBadge(staff.roles)}
-                          {getStatusBadge(staff)}
+                <div key={staff.id} className="relative bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-rose-200 transition-all group" style={{ aspectRatio: '4/3' }}>
+                  {/* 識別證風格卡片 */}
+                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-br from-rose-400 to-pink-500"></div>
+                  
+                  {/* 編輯按鈕 */}
+                  <PermissionGuard adminOnly>
+                    <button className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 text-slate-400 hover:text-rose-500 rounded-lg shadow-sm transition-colors opacity-0 group-hover:opacity-100">
+                      <PencilSimple className="w-3 h-3" />
+                    </button>
+                  </PermissionGuard>
+                  
+                  {/* 照片區域 - 放大並置中 */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
+                      {staff.avatar_url ? (
+                        <img src={staff.avatar_url} alt={staff.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
+                          <User weight="fill" className="w-10 h-10 sm:w-12 sm:h-12 text-rose-400" />
                         </div>
-                      </div>
-                    </div>
-                    <PermissionGuard adminOnly>
-                      <button className="p-1.5 sm:p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0">
-                        <PencilSimple className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    </PermissionGuard>
-                  </div>
-                  
-                  {/* Contact Info */}
-                  <div className="space-y-1 mb-2">
-                    {staff.email && (
-                      <div className="text-xs text-slate-500 flex items-center gap-1">
-                        <Envelope className="w-3 h-3" />
-                        {staff.email}
-                      </div>
-                    )}
-                    {staff.phone && (
-                      <div className="text-xs text-slate-500 flex items-center gap-1">
-                        <span className="w-3 h-3 flex items-center justify-center text-[10px]">📞</span>
-                        {staff.phone}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Skills / Services */}
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <p className="text-xs text-slate-400 mb-2">可執行服務項目 ({staff.staff_services?.length || 0})</p>
-                    <div className="flex flex-wrap gap-1">
-                      {staff.staff_services?.slice(0, 3).map((item, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] rounded-full">
-                          {item.services?.name}
-                        </span>
-                      ))}
-                      {staff.staff_services?.length > 3 && (
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] rounded-full">
-                          +{staff.staff_services.length - 3}
-                        </span>
-                      )}
-                      {(!staff.staff_services || staff.staff_services.length === 0) && (
-                        <span className="text-xs text-slate-400 italic">尚未綁定服務</span>
                       )}
                     </div>
                   </div>
-
-                  {/* Invite Status */}
-                  {staff.invite_token && !staff.user_id && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-amber-600">等待接受邀請</span>
-                        <button 
-                          onClick={() => {
-                            const link = `${window.location.origin}/invite?token=${staff.invite_token}`;
-                            navigator.clipboard.writeText(link);
-                            alert('邀請連結已複製');
-                          }}
-                          className="text-xs text-rose-500 hover:text-rose-600 flex items-center gap-1"
-                        >
-                          <Copy className="w-3 h-3" />
-                          複製連結
-                        </button>
-                      </div>
+                  
+                  {/* 資訊區域 */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1/2 pt-8 px-2 pb-2 flex flex-col items-center justify-end">
+                    <h3 className="font-bold text-slate-800 text-sm sm:text-base truncate w-full text-center">{staff.display_name || staff.full_name}</h3>
+                    <div className="flex items-center gap-1 mt-1 flex-wrap justify-center">
+                      {getRoleBadge(staff.roles)}
+                      {getStatusBadge(staff)}
                     </div>
-                  )}
+                    
+                    {/* 聯絡資訊 - 簡化顯示 */}
+                    <div className="mt-1 text-[10px] text-slate-400 truncate w-full text-center">
+                      {staff.phone || staff.email || '尚無聯絡資訊'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

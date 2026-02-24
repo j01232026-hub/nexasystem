@@ -734,43 +734,53 @@ const StoreProfilePage = () => {
                             </button>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {staffList.length > 0 ? (
                                 staffList.map(staff => (
-                                    <div key={staff.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group hover:border-rose-200 transition-colors">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center overflow-hidden">
+                                    <div key={staff.id} className="relative bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 overflow-hidden group hover:shadow-lg hover:border-rose-200 transition-all" style={{ aspectRatio: '4/3' }}>
+                                        {/* 識別證風格卡片 */}
+                                        <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-br from-rose-400 to-pink-500"></div>
+                                        
+                                        {/* 照片區域 - 放大並置中 */}
+                                        <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
                                                 {staff.avatar_url ? (
                                                     <img src={staff.avatar_url} alt={staff.full_name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <UserCircle className="w-6 h-6 text-rose-400" weight="fill" />
+                                                    <div className="w-full h-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
+                                                        <UserCircle className="w-10 h-10 sm:w-12 sm:h-12 text-rose-400" weight="fill" />
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div>
-                                                <div className="flex items-center">
-                                                    <p className="text-sm font-semibold text-slate-800">{staff.display_name || staff.full_name}</p>
-                                                    <span className="ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded">
-                                                        {staff.role === 'stylist' ? '設計師' : 
-                                                         staff.role === 'assistant' ? '助理' : 
-                                                         staff.role === 'manager' ? '店長' : 
-                                                         staff.role || '員工'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-slate-500">員工編號: {staff.id.slice(0, 8)}</p> 
-                                            </div>
                                         </div>
-                                        <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
-                                                <PencilSimple className="w-4 h-4" />
+                                        
+                                        {/* 資訊區域 */}
+                                        <div className="absolute bottom-0 left-0 right-0 h-1/2 pt-8 px-2 pb-2 flex flex-col items-center justify-end">
+                                            <p className="text-sm font-bold text-slate-800 text-center truncate w-full">{staff.display_name || staff.full_name}</p>
+                                            <span className="mt-1 px-2 py-0.5 bg-rose-100 text-rose-600 text-[10px] font-bold rounded-full">
+                                                {staff.role === 'stylist' ? '設計師' : 
+                                                 staff.role === 'assistant' ? '助理' : 
+                                                 staff.role === 'manager' ? '店長' : 
+                                                 staff.role || '員工'}
+                                            </span>
+                                            <p className="mt-1 text-[10px] text-slate-400">{staff.id.slice(0, 8)}</p>
+                                        </div>
+                                        
+                                        {/* 編輯按鈕 */}
+                                        <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button className="p-1.5 bg-white/90 text-slate-400 hover:text-blue-500 rounded-lg shadow-sm transition-colors">
+                                                <PencilSimple className="w-3 h-3" />
                                             </button>
-                                            <button className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                <Trash className="w-4 h-4" />
+                                            <button className="p-1.5 bg-white/90 text-slate-400 hover:text-red-500 rounded-lg shadow-sm transition-colors">
+                                                <Trash className="w-3 h-3" />
                                             </button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-4 text-slate-400 text-sm">暫無員工資料</div>
+                                <div className="col-span-full text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                    暫無員工資料
+                                </div>
                             )}
                         </div>
                     </div>
